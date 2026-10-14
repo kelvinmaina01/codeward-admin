@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, BookOpen, Activity, Zap, Building2, TrendingUp, Loader2 } from 'lucide-react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, AreaChart, Area, BarChart, Bar,
 } from 'recharts';
 import { apiFetch } from '@/lib/api';

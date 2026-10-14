@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Search, GitPullRequest, GitCommit, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { GitPullRequest, GitCommit, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { apiFetch } from "../../lib/api";
 import { Button } from "../../components/ui/button";
 

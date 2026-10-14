@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { Users, UserPlus, Activity, TrendingUp, Crown, Building2, Loader2 } from "lucide-react";
+import { Users, UserPlus, Activity, TrendingUp, Crown, Building2, Loader2, ShieldAlert } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line

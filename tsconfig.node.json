@@ -8,7 +8,7 @@
 
     /* Bundler mode */
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,

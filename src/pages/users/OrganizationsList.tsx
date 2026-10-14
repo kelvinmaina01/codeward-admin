@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, Search, ChevronDown, ChevronRight, Users, Settings, Loader2 } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, Users, Settings, Loader2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { apiFetch } from "../../lib/api";
 
@@ -41,14 +41,14 @@ type OrgDetailsResponse = {
 
 export default function OrganizationsList() {
   const [expandedOrg, setExpandedOrg] = useState<number | null>(null);
-  const [page, setPage] = useState(1);
+  const page = 1;
 
   const queryParams = new URLSearchParams({
     page: page.toString(),
     limit: "25",
   });
 
-  const { data, isLoading, isError } = useQuery<PaginatedOrgs>({
+  const { data, isLoading } = useQuery<PaginatedOrgs>({
     queryKey: ["admin-orgs", page],
     queryFn: () => apiFetch(`/orgs?${queryParams.toString()}`),
   });

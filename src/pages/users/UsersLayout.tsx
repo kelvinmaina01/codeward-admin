@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useLocation } from "react-router-dom";
+import { Outlet, NavLink } from "react-router-dom";
 import { BarChart3, Users, Building2, Clock, Ticket, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
@@ -12,7 +12,6 @@ const navItems = [
 
 export default function UsersLayout() {
   const [collapsed, setCollapsed] = useState(false);
-  const location = useLocation();
 
   return (
     <div className="flex h-[calc(100vh-60px)] w-full overflow-hidden">

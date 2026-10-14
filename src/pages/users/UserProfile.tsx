@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Code2, GitPullRequest, Trophy, ShieldBan, Trash2, GitCommit, UserPlus, LogIn, Crown, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowLeft, Code2, GitPullRequest, ShieldBan, UserPlus, LogIn, Loader2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { apiFetch } from "../../lib/api";
 
