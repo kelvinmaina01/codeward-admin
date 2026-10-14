@@ -1,7 +1,20 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Search, Filter, ExternalLink, ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Search,
+  Filter,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Loader2,
+  UserPlus,
+  Shield,
+  Crown,
+  CheckCircle2,
+  AlertCircle
+} from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { apiFetch } from "../../lib/api";
 
@@ -17,6 +30,7 @@ type UserResponse = {
   image: string | null;
   isDeleted: boolean;
   emailVerified: boolean;
+  role?: string;
   createdAt: string;
   repoCount: number;
   plan: string;
@@ -46,10 +60,47 @@ type PaginatedUsers = {
 
 export default function UsersList() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>({ plan: "all", status: "all" });
   const [page, setPage] = useState(1);
+
+  // Promote admin state
+  const [isPromoteModalOpen, setIsPromoteModalOpen] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminRole, setAdminRole] = useState<"admin" | "super_admin">("admin");
+  const [isSubmittingAdmin, setIsSubmittingAdmin] = useState(false);
+  const [adminError, setAdminError] = useState("");
+  const [adminSuccess, setAdminSuccess] = useState("");
+
+  const handlePromoteAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminError("");
+    setAdminSuccess("");
+    if (!adminEmail.trim()) {
+      setAdminError("Please enter an email address.");
+      return;
+    }
+    setIsSubmittingAdmin(true);
+    try {
+      const res = await apiFetch<{ success: boolean; message: string }>("/admins", {
+        method: "POST",
+        body: JSON.stringify({ email: adminEmail.trim(), role: adminRole }),
+      });
+      setAdminSuccess(res.message || "Admin successfully updated!");
+      setAdminEmail("");
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      setTimeout(() => {
+        setIsPromoteModalOpen(false);
+        setAdminSuccess("");
+      }, 1500);
+    } catch (err: any) {
+      setAdminError(err.message || "Failed to promote user.");
+    } finally {
+      setIsSubmittingAdmin(false);
+    }
+  };
 
   // Debounced search for API
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -90,11 +141,25 @@ export default function UsersList() {
   return (
     <div className="p-6 space-y-4 flex flex-col h-full">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">All Users</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {data?.pagination.total || 0} total users · Click a row to view their full profile & timeline.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">All Users</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {data?.pagination.total || 0} total users · Click a row to view their full profile & timeline.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm shrink-0"
+          onClick={() => {
+            setAdminError("");
+            setAdminSuccess("");
+            setIsPromoteModalOpen(true);
+          }}
+        >
+          <UserPlus className="h-4 w-4" />
+          Add / Promote Admin
+        </Button>
       </div>
 
       {/* Search & Filters */}
@@ -183,6 +248,7 @@ export default function UsersList() {
           <thead className="text-[11px] text-muted-foreground uppercase tracking-wider bg-muted/40 sticky top-0 z-10 backdrop-blur-sm">
             <tr>
               <th className="px-4 py-3 text-left font-medium">User</th>
+              <th className="px-3 py-3 text-left font-medium">Role</th>
               <th className="px-3 py-3 text-left font-medium">Auth</th>
               <th className="px-3 py-3 text-left font-medium">Plan</th>
               <th className="px-3 py-3 text-left font-medium">Org</th>
@@ -216,6 +282,20 @@ export default function UsersList() {
                       <span className="text-xs text-muted-foreground truncate block">{user.email}</span>
                     </div>
                   </div>
+                </td>
+                {/* Role */}
+                <td className="px-3 py-3">
+                  {user.role === "super_admin" ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                      <Crown className="h-3 w-3" /> Super Admin
+                    </span>
+                  ) : user.role === "admin" ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/10 text-purple-500 border border-purple-500/20">
+                      <Shield className="h-3 w-3" /> Admin
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">User</span>
+                  )}
                 </td>
                 {/* Auth Provider */}
                 <td className="px-3 py-3">
@@ -296,6 +376,102 @@ export default function UsersList() {
           </Button>
         </div>
       </div>
+
+      {/* ── Promote / Add Admin Modal ── */}
+      {isPromoteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-md rounded-2xl border border-border/80 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <Shield className="h-4 w-4" />
+                </div>
+                <h3 className="font-semibold text-foreground">Add / Promote Admin</h3>
+              </div>
+              <button
+                onClick={() => setIsPromoteModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground rounded-lg p-1 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePromoteAdmin} className="p-6 space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Enter the email address of any existing user to grant them administrative privileges in Codeward.
+              </p>
+
+              {adminError && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{adminError}</span>
+                </div>
+              )}
+
+              {adminSuccess && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 text-emerald-500 text-xs border border-emerald-500/20">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>{adminSuccess}</span>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-foreground">User Email</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. teammate@company.com"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-foreground">Admin Role</label>
+                <select
+                  value={adminRole}
+                  onChange={(e) => setAdminRole(e.target.value as "admin" | "super_admin")}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="admin">Admin (Manage users, organizations, scans)</option>
+                  <option value="super_admin">Super Admin (Full platform & billing control)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsPromoteModalOpen(false)}
+                  disabled={isSubmittingAdmin}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="gap-1.5 font-semibold"
+                  disabled={isSubmittingAdmin}
+                >
+                  {isSubmittingAdmin ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Promoting...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-3.5 w-3.5" />
+                      Promote to Admin
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
