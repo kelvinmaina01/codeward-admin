@@ -291,16 +291,28 @@ export default function Layout() {
 
         {/* ── Main content card (100% flexible width) ── */}
         <main className="min-w-0 flex-1 w-full overflow-hidden rounded-2xl bg-[var(--shell-main)] border border-[var(--shell-border)] shadow-xs flex flex-col transition-colors duration-200">
-          {/* Slim topbar: breadcrumb + search + theme toggle + collapse trigger */}
+          {/* Slim topbar: collapse trigger + breadcrumb + search + theme toggle */}
           <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border/60 px-4">
+            {/* Desktop panel toggle - first component */}
+            <button
+              onClick={() => setSecondaryCollapsed((v) => !v)}
+              className="hidden h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-muted shadow-xs transition-all cursor-pointer lg:flex shrink-0"
+              title={secondaryCollapsed ? "Expand sidebar panel" : "Collapse sidebar panel"}
+            >
+              <PanelRightIcon className={cn("h-4 w-4 transition-transform", secondaryCollapsed && "rotate-180")} />
+            </button>
+
+            {/* Mobile menu trigger */}
             <button
               onClick={() => setMobileOpen(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-muted lg:hidden"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-foreground lg:hidden shrink-0"
+              title="Open menu"
             >
               <FolderManagementIcon className="h-4 w-4" />
             </button>
+
             <div className="hidden items-center gap-2 sm:flex">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-[11px] font-bold text-background">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-[11px] font-bold text-background shrink-0">
                 {initial}
               </span>
               <span className="text-[13px] text-muted-foreground">
@@ -326,16 +338,6 @@ export default function Layout() {
 
               {/* 3-Theme Mode Selector in Topbar */}
               <ModeToggle variant="outline" />
-
-              {/* Sidebar Collapse/Expand Trigger Button with PanelRightIcon */}
-              <button
-                onClick={() => setSecondaryCollapsed((v) => !v)}
-                className="hidden h-9 items-center gap-1.5 rounded-full bg-foreground px-3.5 text-[13px] font-medium text-background hover:opacity-90 lg:flex shadow-xs transition-all cursor-pointer"
-                title={secondaryCollapsed ? "Expand side panel" : "Collapse side panel"}
-              >
-                <PanelRightIcon className={cn("h-4 w-4 transition-transform", secondaryCollapsed && "rotate-180")} />
-                <span>{secondaryCollapsed ? "Expand panel" : "Hide panel"}</span>
-              </button>
             </div>
           </header>
 
