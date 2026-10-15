@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { X, Send, Loader2, AlertCircle, CheckCircle2, Mail, Code2, Type, Link, ChevronDown } from "lucide-react";
+import { X, Send, Loader2, AlertCircle, CheckCircle2, Mail, Code2, Type, Link, ChevronDown, ShieldCheck } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 import { apiFetch } from "../lib/api";
@@ -17,6 +17,14 @@ interface Props {
 
 type FormatMode = "plain" | "html";
 
+const PRESET_SENDERS = [
+  { id: "notifications", label: "Codeward Notifications", display: "Codeward <notifications@codeward.cloud>" },
+  { id: "kelvin", label: "Kelvin from Codeward", display: "Kelvin <kelvin@codeward.cloud>" },
+  { id: "team", label: "Team Codeward", display: "Team Codeward <team@codeward.cloud>" },
+  { id: "support", label: "Codeward Support", display: "Codeward Support <support@codeward.cloud>" },
+  { id: "custom", label: "Custom @codeward.cloud address...", display: "" },
+];
+
 const SUBJECT_TEMPLATES = [
   "Important update about your Codeward account",
   "Action required: Security notice",
@@ -26,6 +34,9 @@ const SUBJECT_TEMPLATES = [
 ];
 
 export default function MessageDrawer({ user, onClose }: Props) {
+  const [senderMode, setSenderMode] = useState<string>("notifications");
+  const [customPrefix, setCustomPrefix] = useState<string>("");
+  const [customName, setCustomName] = useState<string>("");
   const [mode, setMode] = useState<FormatMode>("plain");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -34,6 +45,17 @@ export default function MessageDrawer({ user, onClose }: Props) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const getEffectiveSender = useCallback(() => {
+    if (senderMode === "custom") {
+      const cleanPrefix = customPrefix.trim().toLowerCase().replace(/@codeward\.cloud$/i, "");
+      if (!cleanPrefix) return "";
+      const name = customName.trim();
+      return name ? `${name} <${cleanPrefix}@codeward.cloud>` : `${cleanPrefix}@codeward.cloud`;
+    }
+    const preset = PRESET_SENDERS.find((p) => p.id === senderMode);
+    return preset ? preset.display : "Codeward <notifications@codeward.cloud>";
+  }, [senderMode, customPrefix, customName]);
 
   const insertAtCursor = useCallback((before: string, after = "") => {
     const el = textareaRef.current;
@@ -55,6 +77,11 @@ export default function MessageDrawer({ user, onClose }: Props) {
 
   const handleSend = async () => {
     setError("");
+    const effectiveSender = getEffectiveSender();
+    if (!effectiveSender) {
+      setError("Please specify a valid email prefix for the @codeward.cloud sender (e.g. 'kelvin' or 'team').");
+      return;
+    }
     if (!subject.trim()) { setError("Subject is required."); return; }
     if (!body.trim()) { setError("Email body is required."); return; }
 
@@ -62,7 +89,12 @@ export default function MessageDrawer({ user, onClose }: Props) {
     try {
       await apiFetch(`/users/${user!.id}/message`, {
         method: "POST",
-        body: JSON.stringify({ subject: subject.trim(), body, isHtml: mode === "html" }),
+        body: JSON.stringify({
+          fromAddress: effectiveSender,
+          subject: subject.trim(),
+          body,
+          isHtml: mode === "html",
+        }),
       });
       setSuccess(true);
       setTimeout(() => {
@@ -145,6 +177,69 @@ export default function MessageDrawer({ user, onClose }: Props) {
 
         {/* Body */}
         <div className="flex-1 flex flex-col gap-4 px-5 py-4 overflow-y-auto">
+          {/* Sender Selector */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                From (Sender)
+              </label>
+              <span className="text-[10px] font-medium text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                @codeward.cloud verified
+              </span>
+            </div>
+
+            <select
+              value={senderMode}
+              onChange={(e) => setSenderMode(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
+            >
+              {PRESET_SENDERS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.id === "custom" ? "✏️ Custom @codeward.cloud sender (Cofounder, Team, etc.)..." : s.display}
+                </option>
+              ))}
+            </select>
+
+            {senderMode === "custom" && (
+              <div className="p-3 rounded-lg border border-border/70 bg-muted/20 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-muted-foreground">Sender Name</label>
+                    <input
+                      type="text"
+                      value={customName}
+                      onChange={(e) => setCustomName(e.target.value)}
+                      placeholder="e.g. Kelvin or Co-founder"
+                      className="flex h-8 w-full rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-muted-foreground">Email Prefix</label>
+                    <div className="flex rounded-md shadow-sm">
+                      <input
+                        type="text"
+                        value={customPrefix}
+                        onChange={(e) => setCustomPrefix(e.target.value.replace(/[^a-zA-Z0-9._-]/g, ''))}
+                        placeholder="kelvin or team"
+                        className="flex h-8 w-full rounded-l-md border border-r-0 border-input bg-background px-2.5 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      />
+                      <span className="inline-flex items-center px-2 rounded-r-md border border-input bg-muted text-[11px] text-muted-foreground font-mono select-none">
+                        @codeward.cloud
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                  <span>Sending as:</span>
+                  <code className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-[10px]">
+                    {getEffectiveSender() || "(enter prefix above)"}
+                  </code>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Subject */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground">Subject</label>
@@ -226,7 +321,7 @@ export default function MessageDrawer({ user, onClose }: Props) {
                   ? "<p>Hi {{name}},</p>\n<p>Your message here...</p>"
                   : "Hi there,\n\nYour message here...\n\nBest,\nThe Codeward Team"
               }
-              rows={14}
+              rows={12}
               className={cn(
                 "w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none leading-relaxed",
                 mode === "html" && "font-mono text-xs"
@@ -238,7 +333,7 @@ export default function MessageDrawer({ user, onClose }: Props) {
           <div className="rounded-lg bg-muted/40 border border-border/40 px-3 py-2.5 text-xs text-muted-foreground leading-relaxed">
             {mode === "html" ? (
               <>
-                <span className="font-medium text-foreground">HTML mode:</span> Full HTML email body. Inline styles are recommended for email client compatibility. Reply-to is set to your admin email.
+                <span className="font-medium text-foreground">HTML mode:</span> Full HTML email body. Inline styles are recommended for email client compatibility. Reply-to will be routed to your selected sender identity or admin email.
               </>
             ) : (
               <>
@@ -263,10 +358,10 @@ export default function MessageDrawer({ user, onClose }: Props) {
             </div>
           )}
           <div className="flex items-center justify-between gap-3">
-            <p className="text-[11px] text-muted-foreground">
-              Sent via Resend · Reply-to: your admin email
+            <p className="text-[11px] text-muted-foreground truncate">
+              Via Resend · {getEffectiveSender() || "Select sender"}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Button variant="outline" size="sm" onClick={onClose} disabled={isSending}>
                 Cancel
               </Button>
