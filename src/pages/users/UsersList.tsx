@@ -12,8 +12,6 @@ import {
   UserPlus,
   Shield,
   Crown,
-  CheckCircle2,
-  AlertCircle,
   Mail,
   Trash2,
   Clock,
@@ -21,6 +19,7 @@ import {
 import { Button } from "../../components/ui/button";
 import { apiFetch } from "../../lib/api";
 import MessageDrawer from "../../components/MessageDrawer";
+import AdminModal from "../../components/AdminModal";
 
 type FilterState = {
   plan: string;
@@ -74,42 +73,9 @@ export default function UsersList() {
 
   // Promote admin state
   const [isPromoteModalOpen, setIsPromoteModalOpen] = useState(false);
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminRole, setAdminRole] = useState<"admin" | "super_admin">("admin");
-  const [isSubmittingAdmin, setIsSubmittingAdmin] = useState(false);
-  const [adminError, setAdminError] = useState("");
-  const [adminSuccess, setAdminSuccess] = useState("");
 
   // Messaging state
   const [messagingUser, setMessagingUser] = useState<{ id: string; name: string; email: string } | null>(null);
-
-  const handlePromoteAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAdminError("");
-    setAdminSuccess("");
-    if (!adminEmail.trim()) {
-      setAdminError("Please enter an email address.");
-      return;
-    }
-    setIsSubmittingAdmin(true);
-    try {
-      const res = await apiFetch<{ success: boolean; message: string }>("/admins", {
-        method: "POST",
-        body: JSON.stringify({ email: adminEmail.trim(), role: adminRole }),
-      });
-      setAdminSuccess(res.message || "Admin successfully updated!");
-      setAdminEmail("");
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      setTimeout(() => {
-        setIsPromoteModalOpen(false);
-        setAdminSuccess("");
-      }, 1500);
-    } catch (err: any) {
-      setAdminError(err.message || "Failed to promote user.");
-    } finally {
-      setIsSubmittingAdmin(false);
-    }
-  };
 
   // Debounced search for API
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -160,11 +126,7 @@ export default function UsersList() {
         <Button
           size="sm"
           className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm shrink-0"
-          onClick={() => {
-            setAdminError("");
-            setAdminSuccess("");
-            setIsPromoteModalOpen(true);
-          }}
+          onClick={() => setIsPromoteModalOpen(true)}
         >
           <UserPlus className="h-4 w-4" />
           Add / Promote Admin
@@ -413,100 +375,14 @@ export default function UsersList() {
       </div>
 
       {/* ── Promote / Add Admin Modal ── */}
-      {isPromoteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full max-w-md rounded-2xl border border-border/80 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                  <Shield className="h-4 w-4" />
-                </div>
-                <h3 className="font-semibold text-foreground">Add / Promote Admin</h3>
-              </div>
-              <button
-                onClick={() => setIsPromoteModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground rounded-lg p-1 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handlePromoteAdmin} className="p-6 space-y-4">
-              <p className="text-xs text-muted-foreground">
-                Enter the email address of any existing user to grant them administrative privileges in Codeward.
-              </p>
-
-              {adminError && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{adminError}</span>
-                </div>
-              )}
-
-              {adminSuccess && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 text-emerald-500 text-xs border border-emerald-500/20">
-                  <CheckCircle2 className="h-4 w-4 shrink-0" />
-                  <span>{adminSuccess}</span>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">User Email</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="e.g. teammate@company.com"
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={adminEmail}
-                  onChange={(e) => setAdminEmail(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Admin Role</label>
-                <select
-                  value={adminRole}
-                  onChange={(e) => setAdminRole(e.target.value as "admin" | "super_admin")}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="admin">Admin (Manage users, organizations, scans)</option>
-                  <option value="super_admin">Super Admin (Full platform & billing control)</option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsPromoteModalOpen(false)}
-                  disabled={isSubmittingAdmin}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="gap-1.5 font-semibold"
-                  disabled={isSubmittingAdmin}
-                >
-                  {isSubmittingAdmin ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Promoting...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-3.5 w-3.5" />
-                      Promote to Admin
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <AdminModal
+        isOpen={isPromoteModalOpen}
+        onClose={() => setIsPromoteModalOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["users"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+        }}
+      />
 
       {/* ── Message Drawer ── */}
       <MessageDrawer user={messagingUser} onClose={() => setMessagingUser(null)} />

@@ -87,6 +87,7 @@ export const primaryNav: PrimaryItem[] = [
         links: [
           { label: "Overview", href: "/users", end: true, icon: Analytics01Icon },
           { label: "All Users", href: "/users/all", icon: UserListIcon },
+          { label: "Administrators", href: "/users/admins", icon: UserGroupIcon },
           { label: "Organizations", href: "/users/organizations", icon: Building01Icon },
           { label: "Activity Log", href: "/users/activity", icon: Clock01Icon },
           { label: "Beta Codes", href: "/users/beta-codes", icon: Ticket01Icon },
@@ -109,7 +110,7 @@ export const primaryNav: PrimaryItem[] = [
         collapsible: true,
         defaultOpen: false,
         links: [
-          { label: "Admins & roles", href: "/users/all", icon: UserGroupIcon },
+          { label: "Admins & roles", href: "/users/admins", icon: UserGroupIcon },
           { label: "Organizations", href: "/users/organizations", icon: FolderManagementIcon },
         ],
       },

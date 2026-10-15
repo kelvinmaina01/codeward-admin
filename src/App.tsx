@@ -9,6 +9,7 @@ import OverviewDashboard from "./pages/OverviewDashboard";
 import UsersLayout from "./pages/users/UsersLayout";
 import UsersOverview from "./pages/users/UsersOverview";
 import UsersList from "./pages/users/UsersList";
+import AdminsList from "./pages/users/AdminsList";
 import OrganizationsList from "./pages/users/OrganizationsList";
 import UserProfile from "./pages/users/UserProfile";
 import ActivityLog from "./pages/users/ActivityLog";
@@ -43,6 +44,7 @@ function App() {
                 <Route path="users" element={<UsersLayout />}>
                   <Route index element={<UsersOverview />} />
                   <Route path="all" element={<UsersList />} />
+                  <Route path="admins" element={<AdminsList />} />
                   <Route path="organizations" element={<OrganizationsList />} />
                   <Route path="activity" element={<ActivityLog />} />
                   <Route path="beta-codes" element={<BetaCodes />} />
