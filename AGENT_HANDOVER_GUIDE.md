@@ -65,11 +65,22 @@ The portal connects to the backend API (`/api/admin/*`), which implements dual-m
 
 | Variable | Description | Production Value |
 | :--- | :--- | :--- |
-| `VITE_API_URL` | Base admin endpoint URL | `https://codewardapi-production.up.railway.app/api/admin` *(or `https://api.codeward.cloud/api/admin`)* |
+| `VITE_API_URL` | Base admin endpoint URL | `https://api.codeward.cloud/api/admin` |
 | `VITE_ADMIN_KEY` | Admin machine secret key | `codeward-super-secret-change-in-prod-2024` |
 
 > [!NOTE]
 > Local `.env` is git-ignored. Template keys are committed in `.env.example`. When configuring Vercel, enter these keys in **Project Settings → Environment Variables**.
+
+---
+
+## 4.1 🗄️ Database Architecture & CI/CD Topology
+
+| Component | Provider & Host | Status & Role | Details |
+| :--- | :--- | :--- | :--- |
+| **Live Production DB** | **AWS RDS PostgreSQL** (`eu-north-1`)<br>`codeward-postgres.cdg8qa4mglvg.eu-north-1.rds.amazonaws.com` | **Active / Primary** | Real production database (61+ users, 178+ runs, active writes today). Accessible via SSL. |
+| **Backup DB** | **Supabase Pooler** (`eu-central-1`)<br>`aws-1-eu-central-1.pooler.supabase.com:6543` | **Stale Backup** | Frozen snapshot from Sept 25, 2026 (21 users, 76 runs). Do **NOT** use for live admin queries. |
+| **Production API** | **AWS ECS Fargate behind ALB**<br>`https://api.codeward.cloud` | **Live Endpoint** | Directly wired to AWS RDS. Admin routes live under `/api/admin/*`. |
+| **CI/CD Pipeline** | **GitHub Actions** (`.github/workflows/deploy.yml`) | **Automated** | Pushes to `main` on `kelvinmaina01/codeward-` trigger ARM64 Docker builds pushed to ECR and deployed to ECS. |
 
 ---
 
