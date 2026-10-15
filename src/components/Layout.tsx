@@ -63,20 +63,6 @@ export default function Layout() {
 
   const secondaryPanel = (
     <div className="flex h-full flex-col">
-      {/* Workspace switcher */}
-      <button
-        onClick={() => navigate("/")}
-        className="flex items-center gap-2 px-1 pt-1 pb-3 text-left"
-      >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-sm font-black text-background">
-          C
-        </span>
-        <span className="text-[15px] font-semibold tracking-tight">
-          Codeward.com
-        </span>
-        <ArrowDown01Icon className="h-4 w-4 text-muted-foreground" />
-      </button>
-
       {/* Search — like "Try searching insights" */}
       <div className="relative mb-3">
         <Search01Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
