@@ -13,6 +13,10 @@ import OrganizationsList from "./pages/users/OrganizationsList";
 import UserProfile from "./pages/users/UserProfile";
 import ActivityLog from "./pages/users/ActivityLog";
 import BetaCodes from "./pages/users/BetaCodes";
+import RevenueLayout from "./pages/revenue/RevenueLayout";
+import RevenueOverview from "./pages/revenue/RevenueOverview";
+import PayingOrgs from "./pages/revenue/PayingOrgs";
+import Subscribers from "./pages/revenue/Subscribers";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +47,11 @@ function App() {
                   <Route path="activity" element={<ActivityLog />} />
                   <Route path="beta-codes" element={<BetaCodes />} />
                   <Route path="profile/:id" element={<UserProfile />} />
+                </Route>
+                <Route path="revenue" element={<RevenueLayout />}>
+                  <Route index element={<RevenueOverview />} />
+                  <Route path="orgs" element={<PayingOrgs />} />
+                  <Route path="subscribers" element={<Subscribers />} />
                 </Route>
                 <Route path="*" element={<div className="p-8">Coming Soon</div>} />
               </Route>

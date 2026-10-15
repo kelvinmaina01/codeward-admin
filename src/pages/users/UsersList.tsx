@@ -13,10 +13,14 @@ import {
   Shield,
   Crown,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Mail,
+  Trash2,
+  Clock,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { apiFetch } from "../../lib/api";
+import MessageDrawer from "../../components/MessageDrawer";
 
 type FilterState = {
   plan: string;
@@ -34,6 +38,8 @@ type UserResponse = {
   createdAt: string;
   repoCount: number;
   plan: string;
+  // Deletion request info (if any)
+  deletionRequest?: { status: string; requestedAt: string } | null;
   // Fallbacks for UI if missing in API response
   authProvider?: string;
   orgName?: string;
@@ -73,6 +79,9 @@ export default function UsersList() {
   const [isSubmittingAdmin, setIsSubmittingAdmin] = useState(false);
   const [adminError, setAdminError] = useState("");
   const [adminSuccess, setAdminSuccess] = useState("");
+
+  // Messaging state
+  const [messagingUser, setMessagingUser] = useState<{ id: string; name: string; email: string } | null>(null);
 
   const handlePromoteAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,6 +233,7 @@ export default function UsersList() {
               <option value="all">All</option>
               <option value="active">Active (Not deleted)</option>
               <option value="deleted">Deleted</option>
+              <option value="deletion_requested">Deletion Requested</option>
             </select>
           </div>
         </div>
@@ -267,7 +277,13 @@ export default function UsersList() {
                 {/* User */}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${user.isDeleted ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                      user.isDeleted
+                        ? "bg-destructive/10 text-destructive"
+                        : user.deletionRequest?.status === "pending"
+                        ? "bg-amber-500/10 text-amber-500"
+                        : "bg-primary/10 text-primary"
+                    }`}>
                       {user.image ? (
                         <img src={user.image} alt={user.name} className="h-8 w-8 rounded-full" />
                       ) : (
@@ -275,9 +291,18 @@ export default function UsersList() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-medium text-sm truncate">{user.name || "Unknown User"}</span>
-                        {user.isDeleted && <span className="text-[10px] px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-semibold">DELETED</span>}
+                        {user.isDeleted && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-semibold">
+                            <Trash2 className="h-2.5 w-2.5" /> DELETED
+                          </span>
+                        )}
+                        {!user.isDeleted && user.deletionRequest?.status === "pending" && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold border border-amber-500/20">
+                            <Clock className="h-2.5 w-2.5" /> DEL REQUEST
+                          </span>
+                        )}
                       </div>
                       <span className="text-xs text-muted-foreground truncate block">{user.email}</span>
                     </div>
@@ -333,6 +358,16 @@ export default function UsersList() {
                 {/* Actions */}
                 <td className="px-3 py-3 text-right">
                   <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                      title={`Message ${user.name}`}
+                      onClick={() => setMessagingUser({ id: user.id, name: user.name || user.email, email: user.email })}
+                    >
+                      <Mail className="h-3.5 w-3.5" />
+                      Message
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" title="View profile">
                       <ExternalLink className="h-3.5 w-3.5" />
                     </Button>
@@ -472,6 +507,9 @@ export default function UsersList() {
           </div>
         </div>
       )}
+
+      {/* ── Message Drawer ── */}
+      <MessageDrawer user={messagingUser} onClose={() => setMessagingUser(null)} />
     </div>
   );
 }

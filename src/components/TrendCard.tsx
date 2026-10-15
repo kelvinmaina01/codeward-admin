@@ -227,8 +227,8 @@ export default function TrendCard({
           </div>
         </div>
 
-        {/* Chart View (Spacious h-28 with interactive hover tooltip) */}
-        <div className="mt-4 h-28 w-full" onClick={(e) => e.stopPropagation()}>
+        {/* Chart View (spacious h-44 with interactive hover tooltip) */}
+        <div className="mt-4 h-44 w-full" onClick={(e) => e.stopPropagation()}>
           {isLoading ? (
             <div className="flex h-full items-center justify-center gap-2 text-xs text-muted-foreground">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground" />

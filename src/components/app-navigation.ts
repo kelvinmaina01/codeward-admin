@@ -11,6 +11,9 @@ import {
   ChartAverageIcon,
   StarAward01Icon,
   FolderManagementIcon,
+  Dollar01Icon,
+  Wallet01Icon,
+  InboxIcon,
 } from "hugeicons-react";
 
 export type SecondaryLink = {
@@ -108,6 +111,35 @@ export const primaryNav: PrimaryItem[] = [
         links: [
           { label: "Admins & roles", href: "/users/all", icon: UserGroupIcon },
           { label: "Organizations", href: "/users/organizations", icon: FolderManagementIcon },
+        ],
+      },
+    ],
+  },
+  {
+    id: "revenue",
+    label: "Revenue",
+    href: "/revenue",
+    icon: Dollar01Icon,
+    panelTitle: "Revenue & Billing",
+    panelSubtitle: "MRR, payers & subscriptions",
+    groups: [
+      {
+        id: "manage",
+        label: "Manage",
+        links: [
+          { label: "Overview", href: "/revenue", end: true, icon: Analytics01Icon },
+          { label: "Paying Orgs", href: "/revenue/orgs", icon: Wallet01Icon },
+          { label: "Subscribers", href: "/revenue/subscribers", icon: InboxIcon },
+        ],
+      },
+      {
+        id: "analytics",
+        label: "Revenue Analytics",
+        collapsible: true,
+        defaultOpen: true,
+        links: [
+          { label: "MRR growth", href: "/revenue", icon: ChartAverageIcon },
+          { label: "Top payers", href: "/revenue/subscribers", icon: StarAward01Icon },
         ],
       },
     ],
