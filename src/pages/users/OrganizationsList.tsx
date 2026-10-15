@@ -123,9 +123,9 @@ export default function OrganizationsList() {
                 </div>
                 <div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium border capitalize ${
-                    org.planType === 'pro' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                    org.planType === 'team' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
-                    'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
+                    org.planType === 'pro' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' :
+                    org.planType === 'team' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20' :
+                    'bg-muted text-muted-foreground border-border'
                   }`}>
                     {org.planType || 'free'}
                   </span>

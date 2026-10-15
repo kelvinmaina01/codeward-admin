@@ -19,6 +19,7 @@ import {
   Sparkles,
   Ticket
 } from "lucide-react";
+import { LinkCircle02Icon } from "hugeicons-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { apiFetch } from "../../lib/api";
@@ -210,11 +211,11 @@ export default function BetaCodes() {
   );
 
   return (
-    <div className="p-6 space-y-5 flex flex-col h-full relative">
+    <div className="p-4 md:p-6 space-y-5 flex flex-col h-full w-full relative">
       {/* ── Top Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Beta Access Codes</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Beta Access Codes</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Create, edit, discontinue, and monitor founder-issued codes that unlock plans without payment.
           </p>
@@ -222,7 +223,7 @@ export default function BetaCodes() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            className="gap-2 shadow-sm font-medium"
+            className="gap-2 shadow-xs font-medium border-border"
             onClick={handleAutoGenerate}
             disabled={createMutation.isPending}
           >
@@ -234,7 +235,7 @@ export default function BetaCodes() {
             Auto-Generate Code
           </Button>
           <Button
-            className="gap-2 shadow-sm bg-primary hover:bg-primary/90 font-medium"
+            className="gap-2 shadow-xs bg-primary text-primary-foreground hover:bg-primary/90 font-medium"
             onClick={() => setShowCreateModal(true)}
           >
             <Plus className="h-4 w-4" />
@@ -243,75 +244,93 @@ export default function BetaCodes() {
         </div>
       </div>
 
-      {/* ── Analytics KPI Cards ── */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-        <Card className="bg-card/70 border-border/80">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between">
+      {/* ── Analytics KPI Cards (Distinct colors, 100% flexible width) ── */}
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4 w-full">
+        {/* Card 1: Total Codes (Blue Theme) */}
+        <Card className="w-full border-blue-500/30 bg-blue-50/60 dark:bg-blue-950/20 shadow-xs hover:border-blue-500/50 transition-all">
+          <CardHeader className="pb-2 p-4">
+            <CardTitle className="text-xs font-semibold text-blue-700 dark:text-blue-300 flex items-center justify-between">
               <span>Total Codes</span>
-              <Ticket className="h-4 w-4 text-muted-foreground" />
+              <div className="h-6 w-6 rounded-md bg-blue-500/10 flex items-center justify-center">
+                <Ticket className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+              </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
             ) : (
-              <div className="text-2xl font-bold">{analyticsData?.totalCodes ?? codes.length}</div>
+              <div className="text-2xl font-bold text-foreground">
+                {analyticsData?.totalCodes ?? codes.length}
+              </div>
             )}
+            <p className="text-[11px] text-muted-foreground mt-1">Generated & active</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/70 border-border/80">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between">
+        {/* Card 2: Active Codes (Emerald/Green Theme) */}
+        <Card className="w-full border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-950/20 shadow-xs hover:border-emerald-500/50 transition-all">
+          <CardHeader className="pb-2 p-4">
+            <CardTitle className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 flex items-center justify-between">
               <span>Active Codes</span>
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <div className="h-6 w-6 rounded-md bg-emerald-500/10 flex items-center justify-center">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin text-emerald-500" />
             ) : (
-              <div className="text-2xl font-bold text-emerald-500">
+              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                 {analyticsData?.activeCodes ?? codes.filter((c) => c.active).length}
               </div>
             )}
+            <p className="text-[11px] text-muted-foreground mt-1">Available to redeem</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/70 border-border/80">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between">
+        {/* Card 3: Total Redemptions (Purple Theme) */}
+        <Card className="w-full border-purple-500/30 bg-purple-50/60 dark:bg-purple-950/20 shadow-xs hover:border-purple-500/50 transition-all">
+          <CardHeader className="pb-2 p-4">
+            <CardTitle className="text-xs font-semibold text-purple-700 dark:text-purple-300 flex items-center justify-between">
               <span>Total Redemptions</span>
-              <Users className="h-4 w-4 text-blue-500" />
+              <div className="h-6 w-6 rounded-md bg-purple-500/10 flex items-center justify-center">
+                <Users className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+              </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin text-purple-500" />
             ) : (
-              <div className="text-2xl font-bold text-blue-500">
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                 {analyticsData?.totalRedemptions ?? codes.reduce((s, c) => s + c.usedCount, 0)}
               </div>
             )}
+            <p className="text-[11px] text-muted-foreground mt-1">Users activated</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/70 border-border/80">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between">
+        {/* Card 4: Active Trials Running (Amber/Orange Theme) */}
+        <Card className="w-full border-amber-500/30 bg-amber-50/60 dark:bg-amber-950/20 shadow-xs hover:border-amber-500/50 transition-all">
+          <CardHeader className="pb-2 p-4">
+            <CardTitle className="text-xs font-semibold text-amber-700 dark:text-amber-300 flex items-center justify-between">
               <span>Active Trials Running</span>
-              <Clock className="h-4 w-4 text-purple-500" />
+              <div className="h-6 w-6 rounded-md bg-amber-500/10 flex items-center justify-center">
+                <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
             ) : (
-              <div className="text-2xl font-bold text-purple-500">
+              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                 {analyticsData?.activeTrials ?? "—"}
               </div>
             )}
+            <p className="text-[11px] text-muted-foreground mt-1">Live active trials</p>
           </CardContent>
         </Card>
       </div>
@@ -426,7 +445,7 @@ export default function BetaCodes() {
                         Active
                       </span>
                     ) : (
-                      <span className="text-[11px] font-semibold text-zinc-400 bg-zinc-500/10 px-2 py-0.5 rounded-full border border-zinc-500/20">
+                      <span className="text-[11px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border">
                         Discontinued
                       </span>
                     )}
@@ -435,15 +454,15 @@ export default function BetaCodes() {
                   {/* Actions */}
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      {/* Monitor Redemptions */}
+                      {/* Monitor Redemptions & Usage Link */}
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
-                        title="View Usage & Redemptions"
+                        className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10 cursor-pointer"
+                        title="Expand Redemptions & Usage"
                         onClick={() => setInspectingCode(code)}
                       >
-                        <BarChart3 className="h-4 w-4" />
+                        <LinkCircle02Icon className="h-4 w-4" />
                       </Button>
 
                       {/* Edit */}
@@ -788,7 +807,7 @@ export default function BetaCodes() {
                                     Active Trial
                                   </span>
                                 ) : (
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-500/10 text-zinc-400 border border-zinc-500/20">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground border border-border">
                                     Trial Ended
                                   </span>
                                 )}

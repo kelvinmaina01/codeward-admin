@@ -306,9 +306,9 @@ export default function UsersList() {
                 {/* Plan */}
                 <td className="px-3 py-3">
                   <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border capitalize ${
-                    user.plan === "pro" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
-                    user.plan === "team" ? "bg-purple-500/10 text-purple-500 border-purple-500/20" :
-                    "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                    user.plan === "pro" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" :
+                    user.plan === "team" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" :
+                    "bg-muted text-muted-foreground border-border"
                   }`}>
                     {user.plan || "free"}
                   </span>

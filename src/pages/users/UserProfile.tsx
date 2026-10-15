@@ -57,14 +57,14 @@ export default function UserProfile() {
   
   // Create a combined timeline from the recent data
   const timeline = [
-    { type: "signup", title: "User signed up", detail: user.email, date: new Date(user.createdAt).toLocaleString(), ts: new Date(user.createdAt).getTime(), icon: <UserPlus className="h-4 w-4" />, color: "text-blue-500", bg: "bg-blue-500/10 border-blue-500/20" },
+    { type: "signup", title: "User signed up", detail: user.email, date: new Date(user.createdAt).toLocaleString(), ts: new Date(user.createdAt).getTime(), icon: <UserPlus className="h-4 w-4" />, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
     ...recentSessions.map(s => ({
       type: "login",
       title: `Session from ${s.ipAddress || "Unknown IP"}`,
       detail: s.userAgent || "Unknown browser",
       date: new Date(s.createdAt).toLocaleString(),
       ts: new Date(s.createdAt).getTime(),
-      icon: <LogIn className="h-4 w-4" />, color: "text-zinc-400", bg: "bg-zinc-500/10 border-zinc-500/20"
+      icon: <LogIn className="h-4 w-4" />, color: "text-foreground", bg: "bg-muted border-border"
     })),
     ...repos.map(r => ({
       type: "repo_connected",
@@ -113,9 +113,9 @@ export default function UserProfile() {
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h1 className="text-xl font-bold">{user.name || "Unknown User"}</h1>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${
-                    billing?.planType === "pro" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
-                    billing?.planType === "team" ? "bg-purple-500/10 text-purple-500 border-purple-500/20" :
-                    "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                    billing?.planType === "pro" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" :
+                    billing?.planType === "team" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" :
+                    "bg-muted text-muted-foreground border-border"
                   }`}>{billing?.planType || "free"} Plan</span>
                   {user.isDeleted && <span className="text-[10px] px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-semibold">DELETED</span>}
                 </div>

@@ -8,9 +8,10 @@ import {
   ArrowDown01Icon,
   ArrowUp01Icon,
   FolderManagementIcon,
+  PanelRightIcon,
 } from "hugeicons-react";
-import { LogOut, Moon, Sun, Database } from "lucide-react";
-import { useTheme } from "./theme-provider";
+import { LogOut } from "lucide-react";
+import { ModeToggle } from "./mode-toggle";
 import { useAuth } from "../lib/auth-context";
 import { primaryNav } from "./app-navigation";
 import { cn } from "../lib/utils";
@@ -27,7 +28,6 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { theme, setTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [secondaryCollapsed, setSecondaryCollapsed] = useState(false);
@@ -68,7 +68,7 @@ export default function Layout() {
         onClick={() => navigate("/")}
         className="flex items-center gap-2 px-1 pt-1 pb-3 text-left"
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black text-sm font-black text-white dark:bg-white dark:text-black">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-sm font-black text-background">
           C
         </span>
         <span className="text-[15px] font-semibold tracking-tight">
@@ -84,7 +84,7 @@ export default function Layout() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder='Try searching "insights"'
-          className="h-10 w-full rounded-full border border-transparent bg-white pl-9 pr-3 text-[13px] outline-none placeholder:text-muted-foreground/70 focus:border-primary/30 focus:bg-white dark:bg-muted/60 dark:focus:bg-muted"
+          className="h-10 w-full rounded-full border border-transparent bg-card pl-9 pr-3 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/70 focus:border-primary/40 focus:bg-background"
         />
       </div>
 
@@ -92,14 +92,14 @@ export default function Layout() {
       <div className="space-y-0.5 px-1 text-[13px]">
         <NavLink
           to="/"
-          className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-muted-foreground hover:bg-white hover:text-foreground dark:hover:bg-muted"
+          className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         >
           <FavouriteIcon className="h-4 w-4" />
           Starred
         </NavLink>
         <NavLink
           to="/users/activity"
-          className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-muted-foreground hover:bg-white hover:text-foreground dark:hover:bg-muted"
+          className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         >
           <TimeScheduleIcon className="h-4 w-4" />
           Recent
@@ -143,7 +143,7 @@ export default function Layout() {
                     ))}
                 </button>
                 <button
-                  className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-muted-foreground hover:text-foreground dark:bg-muted"
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-muted-foreground hover:text-foreground border border-border/40 cursor-pointer"
                   title={`Add ${group.label}`}
                 >
                   <Add01Icon className="h-3.5 w-3.5" />
@@ -164,7 +164,7 @@ export default function Layout() {
                           "before:absolute before:-left-[5px] before:top-1/2 before:h-px before:w-2 before:-translate-y-1/2 before:bg-border",
                           isActive
                             ? "font-semibold text-rose-600 dark:text-rose-400 before:bg-rose-500"
-                            : "text-muted-foreground hover:bg-white hover:text-foreground dark:hover:bg-muted"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         )
                       }
                     >
@@ -192,7 +192,7 @@ export default function Layout() {
           <FolderManagementIcon className="h-4 w-4" />
           Manage folders
         </button>
-        <div className="flex items-center gap-2 rounded-xl bg-white p-2 dark:bg-muted/60">
+        <div className="flex items-center gap-2 rounded-xl bg-card border border-border/50 p-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
             {initial}
           </span>
@@ -204,20 +204,10 @@ export default function Layout() {
               {user?.email ?? ""}
             </p>
           </div>
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted"
-            title="Toggle theme"
-          >
-            {theme === "dark" ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            )}
-          </button>
+          <ModeToggle />
           <button
             onClick={logout}
-            className="flex h-7 w-7 items-center justify-center rounded-full text-destructive hover:bg-destructive/10"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-destructive hover:bg-destructive/10 cursor-pointer"
             title="Sign out"
           >
             <LogOut className="h-4 w-4" />
@@ -228,13 +218,13 @@ export default function Layout() {
   );
 
   return (
-    <div className="min-h-screen w-full bg-[#E4DED6] p-2 dark:bg-black md:p-3">
-      <div className="mx-auto flex h-[calc(100vh-16px)] max-w-[1600px] gap-2 md:h-[calc(100vh-24px)] md:gap-3">
+    <div className="min-h-screen w-full bg-[var(--shell-bg)] p-2 md:p-3 transition-colors duration-200">
+      <div className="mx-auto flex h-[calc(100vh-16px)] w-full max-w-[1600px] gap-2 md:h-[calc(100vh-24px)] md:gap-3">
         {/* ── Primary rail (major panel) ── */}
-        <aside className="flex w-[60px] shrink-0 flex-col items-center rounded-2xl bg-[#F3EFE8] py-3 dark:bg-[#0a0a0a] dark:border dark:border-border/60 md:w-[68px]">
+        <aside className="flex w-[60px] shrink-0 flex-col items-center rounded-2xl bg-[var(--shell-sidebar)] border border-[var(--shell-border)] py-3 shadow-xs md:w-[68px] transition-colors duration-200">
           <button
             onClick={() => navigate("/")}
-            className="mb-4 flex h-9 w-9 items-center justify-center rounded-full bg-black text-base font-black text-white dark:bg-white dark:text-black"
+            className="mb-4 flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-base font-black text-background cursor-pointer"
             title="Codeward"
           >
             C
@@ -253,7 +243,7 @@ export default function Layout() {
                     "flex h-11 w-11 items-center justify-center rounded-full transition-all",
                     isActive
                       ? "bg-rose-500 text-white shadow-lg shadow-rose-500/30"
-                      : "bg-white text-stone-500 hover:bg-white hover:text-stone-900 dark:bg-muted dark:text-muted-foreground dark:hover:text-foreground"
+                      : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground border border-border/40"
                   )}
                 >
                   <Icon className="h-5 w-5" />
@@ -264,16 +254,16 @@ export default function Layout() {
 
           <button
             onClick={() => setSecondaryCollapsed((v) => !v)}
-            className="mt-3 hidden h-9 w-9 items-center justify-center rounded-full bg-white text-stone-500 md:flex dark:bg-muted"
-            title="Toggle panel"
+            className="mt-3 hidden h-9 w-9 items-center justify-center rounded-full bg-card border border-border text-foreground hover:bg-muted md:flex transition-all cursor-pointer"
+            title={secondaryCollapsed ? "Expand sidebar panel" : "Collapse sidebar panel"}
           >
-            <Database className="h-4 w-4" />
+            <PanelRightIcon className={cn("h-4 w-4 transition-transform", secondaryCollapsed && "rotate-180")} />
           </button>
 
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="mt-3 flex h-9 w-9 items-center justify-center rounded-full bg-white md:hidden"
+            className="mt-3 flex h-9 w-9 items-center justify-center rounded-full bg-card border border-border text-foreground md:hidden"
           >
             <Search01Icon className="h-4 w-4" />
           </button>
@@ -281,7 +271,7 @@ export default function Layout() {
 
         {/* ── Secondary panel (breakdown of major) ── */}
         {!secondaryCollapsed && (
-          <aside className="hidden w-[280px] shrink-0 rounded-2xl bg-[#F3EFE8] p-4 dark:bg-[#0a0a0a] dark:border dark:border-border/60 lg:block">
+          <aside className="hidden w-[280px] shrink-0 rounded-2xl bg-[var(--shell-sidebar)] border border-[var(--shell-border)] p-4 shadow-xs lg:block transition-colors duration-200">
             {secondaryPanel}
           </aside>
         )}
@@ -290,18 +280,18 @@ export default function Layout() {
         {mobileOpen && (
           <div className="fixed inset-0 z-50 flex lg:hidden">
             <div
-              className="fixed inset-0 bg-black/40"
+              className="fixed inset-0 bg-black/40 backdrop-blur-xs"
               onClick={() => setMobileOpen(false)}
             />
-            <div className="relative z-10 w-[300px] rounded-r-2xl bg-[#F3EFE8] p-4 dark:bg-card">
+            <div className="relative z-10 w-[300px] rounded-r-2xl bg-[var(--shell-sidebar)] border-r border-[var(--shell-border)] p-4">
               {secondaryPanel}
             </div>
           </div>
         )}
 
-        {/* ── Main content card ── */}
-        <main className="min-w-0 flex-1 overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-[#0a0a0a] dark:border dark:border-border/60">
-          {/* Slim topbar like reference: avatars + search context */}
+        {/* ── Main content card (100% flexible width) ── */}
+        <main className="min-w-0 flex-1 w-full overflow-hidden rounded-2xl bg-[var(--shell-main)] border border-[var(--shell-border)] shadow-xs flex flex-col transition-colors duration-200">
+          {/* Slim topbar: breadcrumb + search + theme toggle + collapse trigger */}
           <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border/60 px-4">
             <button
               onClick={() => setMobileOpen(true)}
@@ -310,18 +300,18 @@ export default function Layout() {
               <FolderManagementIcon className="h-4 w-4" />
             </button>
             <div className="hidden items-center gap-2 sm:flex">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-[11px] font-bold text-white">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-[11px] font-bold text-background">
                 {initial}
               </span>
               <span className="text-[13px] text-muted-foreground">
                 {activePrimary.panelTitle}
               </span>
               <span className="text-[13px] text-muted-foreground">/</span>
-              <span className="text-[13px] font-semibold">
-                {location.pathname.split("/").filter(Boolean).pop() ??
-                  "overview"}
+              <span className="text-[13px] font-semibold text-foreground">
+                {location.pathname.split("/").filter(Boolean).pop() ?? "overview"}
               </span>
             </div>
+
             <div className="ml-auto flex items-center gap-2">
               <div className="relative hidden md:block">
                 <Search01Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -330,19 +320,26 @@ export default function Layout() {
                   onFocus={() => {
                     if (activePrimary.id !== "users") navigate("/users/all");
                   }}
-                  className="h-9 w-56 rounded-full bg-muted/60 pl-9 pr-3 text-[13px] outline-none placeholder:text-muted-foreground/70 focus:bg-muted"
+                  className="h-9 w-52 lg:w-60 rounded-full bg-muted/60 border border-transparent pl-9 pr-3 text-[13px] outline-none placeholder:text-muted-foreground/70 focus:border-border focus:bg-muted"
                 />
               </div>
+
+              {/* 3-Theme Mode Selector in Topbar */}
+              <ModeToggle variant="outline" />
+
+              {/* Sidebar Collapse/Expand Trigger Button with PanelRightIcon */}
               <button
                 onClick={() => setSecondaryCollapsed((v) => !v)}
-                className="hidden h-9 items-center rounded-full bg-black px-4 text-[13px] font-medium text-white lg:flex dark:bg-white dark:text-black"
+                className="hidden h-9 items-center gap-1.5 rounded-full bg-foreground px-3.5 text-[13px] font-medium text-background hover:opacity-90 lg:flex shadow-xs transition-all cursor-pointer"
+                title={secondaryCollapsed ? "Expand side panel" : "Collapse side panel"}
               >
-                {secondaryCollapsed ? "Show panel" : "Hide panel"}
+                <PanelRightIcon className={cn("h-4 w-4 transition-transform", secondaryCollapsed && "rotate-180")} />
+                <span>{secondaryCollapsed ? "Expand panel" : "Hide panel"}</span>
               </button>
             </div>
           </header>
 
-          <div className="h-[calc(100%-56px)] overflow-auto">
+          <div className="h-[calc(100%-56px)] w-full overflow-auto">
             <Outlet />
           </div>
         </main>
