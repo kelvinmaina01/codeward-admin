@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { GitPullRequest, GitCommit, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { SidebarRightIcon } from "hugeicons-react";
 import { apiFetch } from "../../lib/api";
 import { Button } from "../../components/ui/button";
+import RunDrawer from "../../components/RunDrawer";
 
 type Run = {
   id: number;
@@ -28,6 +30,8 @@ type PaginatedRuns = {
 export default function ActivityLog() {
   const [filterType, setFilterType] = useState("all");
   const [page, setPage] = useState(1);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [drawerCollapsed, setDrawerCollapsed] = useState(false);
 
   const queryParams = new URLSearchParams({
     page: page.toString(),
@@ -53,7 +57,9 @@ export default function ActivityLog() {
   };
 
   return (
-    <div className="p-6 space-y-5 flex flex-col h-full relative">
+    <div className="flex h-full w-full overflow-hidden">
+      {/* Feed column — shrinks side-by-side when the drawer is open (push, not overlay) */}
+      <div className="p-6 space-y-5 flex flex-col h-full min-w-0 flex-1 relative">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Agent Activity Log (Runs)</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -101,7 +107,13 @@ export default function ActivityLog() {
           return (
             <div
               key={run.id}
-              className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors group"
+              onClick={() => { setSelectedId(run.id); setDrawerCollapsed(false); }}
+              title="Click to open run detail"
+              className={`flex items-start gap-4 p-4 rounded-lg border bg-card transition-colors group cursor-pointer ${
+                selectedId === run.id
+                  ? "border-primary/50 ring-1 ring-primary/30"
+                  : "hover:bg-muted/30 hover:border-foreground/20"
+              }`}
             >
               {/* Icon */}
               <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${bg} ${color}`}>
@@ -126,9 +138,12 @@ export default function ActivityLog() {
                 </p>
               </div>
 
-              {/* Time */}
-              <span className="text-xs text-muted-foreground shrink-0 pt-0.5">
-                {new Date(run.createdAt).toLocaleString()}
+              {/* Time + hover affordance */}
+              <span className="flex shrink-0 items-center gap-1.5 pt-0.5">
+                <span className="text-xs text-muted-foreground">
+                  {new Date(run.createdAt).toLocaleString()}
+                </span>
+                <SidebarRightIcon className="h-4 w-4 text-muted-foreground/0 transition-all group-hover:text-muted-foreground group-hover:opacity-100" />
               </span>
             </div>
           );
@@ -166,6 +181,17 @@ export default function ActivityLog() {
           </Button>
         </div>
       </div>
+      </div>
+
+      {/* Docked detail panel — pushes the feed, sits side-by-side */}
+      {selectedId !== null && (
+        <RunDrawer
+          runId={selectedId}
+          collapsed={drawerCollapsed}
+          onToggleCollapse={() => setDrawerCollapsed((v) => !v)}
+          onBack={() => setSelectedId(null)}
+        />
+      )}
     </div>
   );
 }

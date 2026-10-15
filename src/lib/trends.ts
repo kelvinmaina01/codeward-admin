@@ -79,12 +79,14 @@ export interface TrendsResponse {
   debtLeaders: DebtLeader[];
 }
 
-export function useTrends(range: RangeSel) {
+export function useTrends(range: RangeSel, options?: { enabled?: boolean }) {
   const params = rangeToParams(range);
   return useQuery<TrendsResponse>({
     queryKey: ["admin-trends", rangeCacheKey(range)],
     queryFn: () => apiFetch<TrendsResponse>(`/overview/trends?${params}`),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -135,6 +137,7 @@ export interface TrendSummary {
   peak: number;
   peakDay: string | null;
   activeDays: number;
+  todayCount: number;
 }
 
 export function summarize(cur: number[], prev: number[], buckets: string[]): TrendSummary {
@@ -150,6 +153,7 @@ export function summarize(cur: number[], prev: number[], buckets: string[]): Tre
       peakDay = buckets[i] ?? null;
     }
   });
+  const todayCount = cur.length > 0 ? (cur[cur.length - 1] ?? 0) : 0;
   return {
     total,
     prevTotal,
@@ -158,6 +162,7 @@ export function summarize(cur: number[], prev: number[], buckets: string[]): Tre
     peak,
     peakDay,
     activeDays,
+    todayCount,
   };
 }
 

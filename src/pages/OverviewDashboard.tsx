@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, BookOpen, Activity, Zap, Building2, TrendingUp, Loader2 } from "lucide-react";
@@ -56,13 +56,15 @@ function TrendCardHost({
   range,
   onRangeChange,
   onOpen,
+  enabled,
 }: {
   metric: TrendMetric;
   range: RangeSel;
   onRangeChange: (r: RangeSel) => void;
   onOpen: () => void;
+  enabled?: boolean;
 }) {
-  const { data, isLoading, isError } = useTrends(range);
+  const { data, isLoading, isError } = useTrends(range, { enabled });
   return (
     <TrendCard
       metric={metric}
@@ -80,8 +82,27 @@ export default function OverviewDashboard() {
   const { data, isLoading, isError } = useQuery<OverviewData>({
     queryKey: ["admin-platform-overview"],
     queryFn: () => apiFetch("/overview"),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
   });
+
+  // ── Lazy Loading: Observer triggers fetching 300px before scrolling into view ──
+  const [trendsVisible, setTrendsVisible] = useState(false);
+  const trendsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!trendsRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setTrendsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(trendsRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   // ── Trend ranges: one global default, each card can override ──
   const [globalRange, setGlobalRange] = useState<RangeSel>({ key: "30d" });
@@ -94,7 +115,7 @@ export default function OverviewDashboard() {
     setOverrides({});
   };
 
-  // ── Detail drawer ──
+  // ── Detail drawer (lazy: only enabled when drawer is open) ──
   const [openKey, setOpenKey] = useState<string | null>(null);
   const openMetric: TrendMetric | null = useMemo(() => {
     if (!openKey) return null;
@@ -102,10 +123,10 @@ export default function OverviewDashboard() {
     return TREND_METRICS.find((m) => m.key === openKey) ?? null;
   }, [openKey]);
   const drawerRange = openKey === "__debt" ? globalRange : openKey ? rangeFor(openKey) : globalRange;
-  const drawerQuery = useTrends(drawerRange);
+  const drawerQuery = useTrends(drawerRange, { enabled: !!openKey });
 
-  // Shared data for the wide panels (global range)
-  const panelsQuery = useTrends(globalRange);
+  // Shared data for the wide panels (lazy: only enabled when visible)
+  const panelsQuery = useTrends(globalRange, { enabled: trendsVisible });
 
   if (isLoading) {
     return (
@@ -163,7 +184,8 @@ export default function OverviewDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {/* 2-Column Responsive Grid */}
+      <div ref={trendsRef} className="grid gap-5 grid-cols-1 lg:grid-cols-2">
         {TREND_METRICS.map((m) => (
           <TrendCardHost
             key={m.key}
@@ -171,6 +193,7 @@ export default function OverviewDashboard() {
             range={rangeFor(m.key)}
             onRangeChange={(r) => setRangeFor(m.key, r)}
             onOpen={() => setOpenKey(m.key)}
+            enabled={trendsVisible}
           />
         ))}
       </div>
