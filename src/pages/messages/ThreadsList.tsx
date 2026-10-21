@@ -86,6 +86,12 @@ export default function ThreadsList({ activeThreadId }: { activeThreadId?: strin
     return { all: threads.length, transactional: t, personal: p };
   }, [threads]);
 
+  // The API only exposes per-thread delivery aggregates once delivery status
+  // tracking is deployed. Until then the "failed" filter cannot be answered.
+  const aggregatesAvailable = threads.some(
+    (t) => typeof t.bouncedCount === "number" || typeof t.lastMessageStatus === "string"
+  );
+
   return (
     <div className="flex h-full w-[420px] flex-shrink-0 flex-col border-r bg-card">
       <div className="flex items-center justify-between px-4 py-3">
@@ -147,7 +153,13 @@ export default function ThreadsList({ activeThreadId }: { activeThreadId?: strin
         </button>
       </div>
 
-      <div className="flex-1 overflow-auto">
+        {status === "failed" && !aggregatesAvailable && (
+          <p className="px-3 pb-2 text-[10px] text-amber-600 dark:text-amber-400">
+            Delivery aggregates are not available from the API yet — this filter is inactive.
+          </p>
+        )}
+
+        <div className="flex-1 overflow-auto">
         {isLoading && (
           <div className="flex h-40 items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -165,7 +177,9 @@ export default function ThreadsList({ activeThreadId }: { activeThreadId?: strin
         )}
         {threads.map((t) => {
           const active = activeThreadId === t.id;
-          const statusMeta = STATUS_META[t.lastMessageStatus ?? "unknown"] ?? STATUS_META.unknown;
+          const statusMeta = t.lastMessageStatus
+            ? STATUS_META[t.lastMessageStatus] ?? STATUS_META.unknown
+            : null;
           const failed = (t.bouncedCount ?? 0) + (t.failedCount ?? 0);
           return (
             <button
@@ -220,7 +234,7 @@ export default function ThreadsList({ activeThreadId }: { activeThreadId?: strin
                   <span className="shrink-0 rounded bg-rose-500/10 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
                     {failed} failed
                   </span>
-                ) : (
+                ) : statusMeta ? (
                   <span
                     className={cn(
                       "shrink-0 rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider",
@@ -229,7 +243,7 @@ export default function ThreadsList({ activeThreadId }: { activeThreadId?: strin
                   >
                     {statusMeta.label}
                   </span>
-                )}
+                ) : null}
               </div>
               {t.snippet && <p className="truncate text-[11px] text-muted-foreground">{t.snippet}</p>}
             </button>

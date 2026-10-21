@@ -9,7 +9,7 @@ import {
   isFailureStatus,
   useMessageThread,
   useReplyToThread,
-  useSyncThread,
+  useSyncMessages,
   type DirectionFilter,
   type EmailMessage,
   type MessageStatus,
@@ -52,7 +52,8 @@ export default function ThreadView({ threadId }: { threadId: string }) {
   const navigate = useNavigate();
   const { data, isLoading, isError } = useMessageThread(threadId);
   const reply = useReplyToThread(threadId);
-  const sync = useSyncThread();
+  const sync = useSyncMessages();
+  const [syncNote, setSyncNote] = useState("");
   const [direction, setDirection] = useState<DirectionFilter>("all");
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const [showHeaders, setShowHeaders] = useState<string[]>([]);
@@ -166,8 +167,18 @@ export default function ThreadView({ threadId }: { threadId: string }) {
             variant="outline"
             size="sm"
             disabled={sync.isPending}
-            title="Pull the latest delivery status and inbound replies from the provider"
-            onClick={() => sync.mutate(threadId)}
+            title="Pull the latest emails and delivery status from Resend"
+            onClick={() =>
+              sync.mutate(undefined, {
+                onSuccess: (res) =>
+                  setSyncNote(
+                    res.success
+                      ? `Synced — ${res.synced} new, ${res.skipped} already stored.`
+                      : `Sync failed: ${res.errors?.[0] || "provider error"}`
+                  ),
+                onError: (e) => setSyncNote(e.message.replace(/^API Error \d+:\s*/, "") || "Sync failed."),
+              })
+            }
           >
             {sync.isPending ? (
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -184,6 +195,9 @@ export default function ThreadView({ threadId }: { threadId: string }) {
 
       <div className="flex-1 overflow-auto px-6 py-4">
         <div className="mx-auto flex max-w-4xl flex-col gap-4">
+          {syncNote && (
+            <p className="rounded-lg border bg-muted/30 px-3 py-1.5 text-[11px] text-muted-foreground">{syncNote}</p>
+          )}
           {visible.length === 0 && (
             <p className="py-10 text-center text-sm text-muted-foreground">
               No {direction === "inbound" ? "incoming" : "outgoing"} messages in this thread.

@@ -16,6 +16,7 @@ export type MessageStatus =
   | "sent"
   | "delivered"
   | "delivery_delayed"
+  | "received"
   | "bounced"
   | "failed"
   | "complained"
@@ -32,6 +33,7 @@ export const STATUS_META: Record<
   sent: { label: "Sent", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
   delivered: { label: "Delivered", className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
   delivery_delayed: { label: "Delayed", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  received: { label: "Received", className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
   bounced: { label: "Bounced", className: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
   failed: { label: "Failed", className: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
   complained: { label: "Complained", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
@@ -64,12 +66,12 @@ export type EmailMessage = {
   providerMessageId: string | null;
   status: MessageStatus;
   /** Provider explanation for a failed/bounced/complained delivery. */
-  statusReason: string | null;
+  statusReason?: string | null;
   /** Recipient address the provider rejected. */
-  failedRecipient: string | null;
+  failedRecipient?: string | null;
   /** True when the API considers the message safe to send again. */
-  isResendable: boolean;
-  lastAttemptAt: string | null;
+  isResendable?: boolean;
+  lastAttemptAt?: string | null;
   sentAt: string | null;
   receivedAt: string | null;
   createdAt: string;
@@ -91,10 +93,10 @@ export type EmailThread = {
   messageCount: number;
   isUnread: boolean;
   /** Delivery status of the newest message in the thread. */
-  lastMessageStatus: MessageStatus;
-  deliveredCount: number;
-  bouncedCount: number;
-  failedCount: number;
+  lastMessageStatus?: MessageStatus;
+  deliveredCount?: number;
+  bouncedCount?: number;
+  failedCount?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -179,13 +181,16 @@ export function useResendMessage() {
   });
 }
 
-/** Re-sync a thread with the provider (pull delivery status / missed inbound mail). */
-export function useSyncThread() {
+/**
+ * Pull the latest mail from the provider (Resend history + inbound replies).
+ * Hits the global sync endpoint, which is provider-wide.
+ */
+export function useSyncMessages() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (threadId: string) =>
-      apiFetch<{ success: boolean; thread: EmailThread; messages: EmailMessage[] }>(
-        `/messages/threads/${threadId}/sync`,
+    mutationFn: () =>
+      apiFetch<{ success: boolean; synced: number; skipped: number; total: number; errors: string[] }>(
+        "/messages/sync",
         { method: "POST" }
       ),
     onSuccess: () => {
