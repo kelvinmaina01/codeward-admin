@@ -37,6 +37,8 @@ export const STATUS_META: Record<
   bounced: { label: "Bounced", className: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
   failed: { label: "Failed", className: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
   complained: { label: "Complained", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+  suppressed: { label: "Suppressed", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+  canceled: { label: "Canceled", className: "bg-muted text-muted-foreground" },
   unknown: { label: "Unknown", className: "bg-muted text-muted-foreground" },
 };
 
