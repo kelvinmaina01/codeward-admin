@@ -1,0 +1,169 @@
+import { useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Loader2, Mail, Search } from "lucide-react";
+import { cn } from "../../lib/utils";
+import { useMessageThreads, type EmailThread, type ThreadFilter } from "../../lib/messages";
+
+function formatTime(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const sameYear = d.getFullYear() === now.getFullYear();
+  if (sameYear) return d.toLocaleDateString([], { month: "short", day: "numeric" });
+  return d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+}
+
+function participantsLabel(t: EmailThread) {
+  if (t.lastMessageFrom?.email) {
+    const name = t.lastMessageFrom.name || t.lastMessageFrom.email.split("@")[0];
+    const others = Math.max(0, t.participants.length - 1);
+    if (others === 0) return name;
+    return `${name} +${others}`;
+  }
+  if (t.participants.length === 0) return "Unknown";
+  const first = t.participants[0].name || t.participants[0].email;
+  const others = t.participants.length - 1;
+  if (others === 0) return first;
+  return `${first} +${others}`;
+}
+
+export default function ThreadsList({ activeThreadId }: { activeThreadId?: string }) {
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const filter = (params.get("filter") as ThreadFilter) || "all";
+  const [q, setQ] = useState(params.get("q") || "");
+  const [debounced, setDebounced] = useState(params.get("q") || "");
+
+  const onSearch = (v: string) => {
+    setQ(v);
+    window.clearTimeout((onSearch as any)._t);
+    (onSearch as any)._t = window.setTimeout(() => {
+      setDebounced(v);
+      const next = new URLSearchParams(params);
+      if (v) next.set("q", v);
+      else next.delete("q");
+      setParams(next, { replace: true });
+    }, 350);
+  };
+
+  const setFilter = (f: ThreadFilter) => {
+    const next = new URLSearchParams(params);
+    if (f === "all") next.delete("filter");
+    else next.set("filter", f);
+    setParams(next, { replace: true });
+  };
+
+  const { data, isLoading, isError } = useMessageThreads({ filter, q: debounced || undefined, limit: 50 });
+  const threads = data?.threads ?? [];
+
+  const counts = useMemo(() => {
+    let t = 0,
+      p = 0;
+    for (const th of threads) {
+      if (th.category === "transactional") t++;
+      else if (th.category === "personal") p++;
+    }
+    return { all: threads.length, transactional: t, personal: p };
+  }, [threads]);
+
+  return (
+    <div className="flex h-full w-[420px] flex-shrink-0 flex-col border-r bg-card">
+      <div className="flex items-center justify-between px-4 py-3">
+        <div>
+          <h1 className="text-lg font-bold tracking-tight">Messages</h1>
+          <p className="text-xs text-muted-foreground">All emails sent & received via Resend</p>
+        </div>
+        <Mail className="h-4 w-4 text-muted-foreground" />
+      </div>
+
+      <div className="px-3 pb-2">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={q}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder="Search sender, subject, or content..."
+            className="h-8 w-full rounded-lg border bg-background pl-8 pr-2 text-[12px] outline-none placeholder:text-muted-foreground/70 focus:border-primary/40"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1 px-3 pb-2">
+        {(["all", "transactional", "personal"] as ThreadFilter[]).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={cn(
+              "rounded-md px-2 py-1 text-[11px] font-medium capitalize transition-all",
+              filter === f ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {f === "personal" ? "Personal / Direct" : f}
+            {f === "all" ? ` (${counts.all})` : f === "transactional" ? ` (${counts.transactional})` : ` (${counts.personal})`}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-auto">
+        {isLoading && (
+          <div className="flex h-40 items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          </div>
+        )}
+        {isError && (
+          <div className="px-4 py-6 text-center text-xs text-destructive">
+            Failed to load messages. Ensure the API has <code className="font-mono">/api/admin/messages/*</code> routes.
+          </div>
+        )}
+        {!isLoading && !isError && threads.length === 0 && (
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+            No emails found.
+          </div>
+        )}
+        {threads.map((t) => {
+          const active = activeThreadId === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => navigate(`/messages/${t.id}`)}
+              className={cn(
+                "flex w-full flex-col gap-1 border-b px-4 py-2.5 text-left transition-colors",
+                active ? "bg-primary/5" : "hover:bg-muted/40"
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className={cn("truncate text-[13px]", t.isUnread ? "font-semibold" : "font-medium")}>
+                  {participantsLabel(t)}
+                </span>
+                <span className="shrink-0 text-[11px] text-muted-foreground">{formatTime(t.lastMessageAt)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="truncate text-[12px] font-medium">{t.subject || "(no subject)"}</span>
+                <span
+                  className={cn(
+                    "shrink-0 rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                    t.category === "transactional"
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      : t.category === "personal"
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {t.category === "personal" ? "Direct" : t.category}
+                </span>
+                {t.hasReplyFromAdmin && (
+                  <span className="shrink-0 rounded bg-blue-500/10 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                    Replied
+                  </span>
+                )}
+              </div>
+              {t.snippet && <p className="truncate text-[11px] text-muted-foreground">{t.snippet}</p>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

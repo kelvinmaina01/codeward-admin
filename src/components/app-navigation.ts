@@ -14,6 +14,7 @@ import {
   Dollar01Icon,
   Wallet01Icon,
   InboxIcon,
+  Mail01Icon,
 } from "hugeicons-react";
 
 export type SecondaryLink = {
@@ -141,6 +142,25 @@ export const primaryNav: PrimaryItem[] = [
         links: [
           { label: "MRR growth", href: "/revenue", icon: ChartAverageIcon },
           { label: "Top payers", href: "/revenue/subscribers", icon: StarAward01Icon },
+        ],
+      },
+    ],
+  },
+  {
+    id: "messages",
+    label: "Messages",
+    href: "/messages",
+    icon: Mail01Icon,
+    panelTitle: "Messages",
+    panelSubtitle: "Emails sent & received via Resend",
+    groups: [
+      {
+        id: "inbox",
+        label: "Inbox",
+        links: [
+          { label: "All Messages", href: "/messages", end: true, icon: InboxIcon },
+          { label: "Transactional", href: "/messages?filter=transactional", icon: Alert01Icon },
+          { label: "Personal / Direct", href: "/messages?filter=personal", icon: UserGroupIcon },
         ],
       },
     ],

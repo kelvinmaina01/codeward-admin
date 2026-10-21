@@ -18,6 +18,8 @@ import RevenueLayout from "./pages/revenue/RevenueLayout";
 import RevenueOverview from "./pages/revenue/RevenueOverview";
 import PayingOrgs from "./pages/revenue/PayingOrgs";
 import Subscribers from "./pages/revenue/Subscribers";
+import MessagesLayout from "./pages/messages/MessagesLayout";
+import MessagesPage from "./pages/messages/MessagesPage";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +56,10 @@ function App() {
                   <Route index element={<RevenueOverview />} />
                   <Route path="orgs" element={<PayingOrgs />} />
                   <Route path="subscribers" element={<Subscribers />} />
+                </Route>
+                <Route path="messages" element={<MessagesLayout />}>
+                  <Route index element={<MessagesPage />} />
+                  <Route path=":threadId" element={<MessagesPage />} />
                 </Route>
                 <Route path="*" element={<div className="p-8">Coming Soon</div>} />
               </Route>
