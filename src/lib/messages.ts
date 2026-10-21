@@ -4,6 +4,39 @@ import { apiFetch } from "./api";
 export type MessageDirection = "inbound" | "outbound";
 export type MessageCategory = "transactional" | "personal" | "marketing" | "unknown";
 export type ThreadFilter = "all" | "transactional" | "personal";
+export type DirectionFilter = "all" | "inbound" | "outbound";
+
+/**
+ * Delivery status of a message, as reported by the provider.
+ * `bounced`, `failed` and `complained` are the failure states — a bounced
+ * message never reached the recipient and can be retried from the UI.
+ */
+export type MessageStatus =
+  | "queued"
+  | "sent"
+  | "delivered"
+  | "delivery_delayed"
+  | "bounced"
+  | "failed"
+  | "complained"
+  | "unknown"
+  | null;
+
+export const FAILURE_STATUSES: MessageStatus[] = ["bounced", "failed", "complained"];
+
+export const STATUS_META: Record<
+  string,
+  { label: string; className: string }
+> = {
+  queued: { label: "Queued", className: "bg-muted text-muted-foreground" },
+  sent: { label: "Sent", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  delivered: { label: "Delivered", className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+  delivery_delayed: { label: "Delayed", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  bounced: { label: "Bounced", className: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
+  failed: { label: "Failed", className: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
+  complained: { label: "Complained", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+  unknown: { label: "Unknown", className: "bg-muted text-muted-foreground" },
+};
 
 export type EmailParticipant = {
   email: string;
@@ -29,7 +62,14 @@ export type EmailMessage = {
   category: MessageCategory;
   provider: "resend" | "eusend" | "mock" | null;
   providerMessageId: string | null;
-  status: string | null;
+  status: MessageStatus;
+  /** Provider explanation for a failed/bounced/complained delivery. */
+  statusReason: string | null;
+  /** Recipient address the provider rejected. */
+  failedRecipient: string | null;
+  /** True when the API considers the message safe to send again. */
+  isResendable: boolean;
+  lastAttemptAt: string | null;
   sentAt: string | null;
   receivedAt: string | null;
   createdAt: string;
@@ -50,6 +90,11 @@ export type EmailThread = {
   outboundCount: number;
   messageCount: number;
   isUnread: boolean;
+  /** Delivery status of the newest message in the thread. */
+  lastMessageStatus: MessageStatus;
+  deliveredCount: number;
+  bouncedCount: number;
+  failedCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -71,12 +116,15 @@ export type ThreadDetailResponse = {
 
 export function useMessageThreads(params: {
   filter?: ThreadFilter;
+  /** `failed` returns threads containing a bounced, failed or complained message. */
+  status?: "failed" | "delivered";
   q?: string;
   page?: number;
   limit?: number;
 } = {}) {
   const search = new URLSearchParams();
   if (params.filter && params.filter !== "all") search.set("filter", params.filter);
+  if (params.status) search.set("status", params.status);
   if (params.q) search.set("q", params.q);
   if (params.page) search.set("page", String(params.page));
   if (params.limit) search.set("limit", String(params.limit));
@@ -110,4 +158,43 @@ export function useReplyToThread(threadId: string) {
       qc.invalidateQueries({ queryKey: ["messages-threads"] });
     },
   });
+}
+
+/**
+ * Send a message again after it bounced or failed.
+ * The API keeps the original record and links the new attempt to it.
+ */
+export function useResendMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { messageId: string; to?: string[]; reason?: string }) =>
+      apiFetch<{ success: boolean; message: EmailMessage }>(`/messages/${input.messageId}/resend`, {
+        method: "POST",
+        body: JSON.stringify({ to: input.to, reason: input.reason }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["messages-thread"] });
+      qc.invalidateQueries({ queryKey: ["messages-threads"] });
+    },
+  });
+}
+
+/** Re-sync a thread with the provider (pull delivery status / missed inbound mail). */
+export function useSyncThread() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (threadId: string) =>
+      apiFetch<{ success: boolean; thread: EmailThread; messages: EmailMessage[] }>(
+        `/messages/threads/${threadId}/sync`,
+        { method: "POST" }
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["messages-thread"] });
+      qc.invalidateQueries({ queryKey: ["messages-threads"] });
+    },
+  });
+}
+
+export function isFailureStatus(status: MessageStatus) {
+  return status === "bounced" || status === "failed" || status === "complained";
 }

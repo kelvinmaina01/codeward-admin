@@ -2,7 +2,12 @@ import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Mail, Search } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { useMessageThreads, type EmailThread, type ThreadFilter } from "../../lib/messages";
+import {
+  STATUS_META,
+  useMessageThreads,
+  type EmailThread,
+  type ThreadFilter,
+} from "../../lib/messages";
 
 function formatTime(iso: string | null) {
   if (!iso) return "";
@@ -33,6 +38,7 @@ export default function ThreadsList({ activeThreadId }: { activeThreadId?: strin
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const filter = (params.get("filter") as ThreadFilter) || "all";
+  const status = params.get("status") === "failed" ? "failed" : undefined;
   const [q, setQ] = useState(params.get("q") || "");
   const [debounced, setDebounced] = useState(params.get("q") || "");
 
@@ -55,7 +61,19 @@ export default function ThreadsList({ activeThreadId }: { activeThreadId?: strin
     setParams(next, { replace: true });
   };
 
-  const { data, isLoading, isError } = useMessageThreads({ filter, q: debounced || undefined, limit: 50 });
+  const setStatus = (s: "failed" | undefined) => {
+    const next = new URLSearchParams(params);
+    if (s) next.set("status", s);
+    else next.delete("status");
+    setParams(next, { replace: true });
+  };
+
+  const { data, isLoading, isError } = useMessageThreads({
+    filter,
+    status,
+    q: debounced || undefined,
+    limit: 50,
+  });
   const threads = data?.threads ?? [];
 
   const counts = useMemo(() => {
@@ -96,7 +114,7 @@ export default function ThreadsList({ activeThreadId }: { activeThreadId?: strin
             key={f}
             onClick={() => setFilter(f)}
             className={cn(
-              "rounded-md px-2 py-1 text-[11px] font-medium capitalize transition-all",
+              "rounded-md px-2 py-1 text-[11px] font-medium capitalize transition-all cursor-pointer",
               filter === f ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -104,6 +122,29 @@ export default function ThreadsList({ activeThreadId }: { activeThreadId?: strin
             {f === "all" ? ` (${counts.all})` : f === "transactional" ? ` (${counts.transactional})` : ` (${counts.personal})`}
           </button>
         ))}
+      </div>
+
+      <div className="flex items-center gap-1 px-3 pb-2">
+        <button
+          onClick={() => setStatus(undefined)}
+          className={cn(
+            "rounded-md px-2 py-1 text-[11px] font-medium transition-all cursor-pointer",
+            !status ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Any delivery status
+        </button>
+        <button
+          onClick={() => setStatus("failed")}
+          className={cn(
+            "rounded-md px-2 py-1 text-[11px] font-medium transition-all cursor-pointer",
+            status === "failed"
+              ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Failed & bounced
+        </button>
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -124,6 +165,8 @@ export default function ThreadsList({ activeThreadId }: { activeThreadId?: strin
         )}
         {threads.map((t) => {
           const active = activeThreadId === t.id;
+          const statusMeta = STATUS_META[t.lastMessageStatus ?? "unknown"] ?? STATUS_META.unknown;
+          const failed = (t.bouncedCount ?? 0) + (t.failedCount ?? 0);
           return (
             <button
               key={t.id}
@@ -137,7 +180,22 @@ export default function ThreadsList({ activeThreadId }: { activeThreadId?: strin
                 <span className={cn("truncate text-[13px]", t.isUnread ? "font-semibold" : "font-medium")}>
                   {participantsLabel(t)}
                 </span>
-                <span className="shrink-0 text-[11px] text-muted-foreground">{formatTime(t.lastMessageAt)}</span>
+                <span className="flex shrink-0 items-center gap-1.5">
+                  {t.lastMessageDirection && (
+                    <span
+                      className={cn(
+                        "rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                        t.lastMessageDirection === "outbound"
+                          ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      )}
+                      title={t.lastMessageDirection === "outbound" ? "Outgoing" : "Incoming"}
+                    >
+                      {t.lastMessageDirection === "outbound" ? "Out" : "In"}
+                    </span>
+                  )}
+                  <span className="text-[11px] text-muted-foreground">{formatTime(t.lastMessageAt)}</span>
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="truncate text-[12px] font-medium">{t.subject || "(no subject)"}</span>
@@ -156,6 +214,20 @@ export default function ThreadsList({ activeThreadId }: { activeThreadId?: strin
                 {t.hasReplyFromAdmin && (
                   <span className="shrink-0 rounded bg-blue-500/10 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
                     Replied
+                  </span>
+                )}
+                {failed > 0 ? (
+                  <span className="shrink-0 rounded bg-rose-500/10 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                    {failed} failed
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      "shrink-0 rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                      statusMeta.className
+                    )}
+                  >
+                    {statusMeta.label}
                   </span>
                 )}
               </div>
