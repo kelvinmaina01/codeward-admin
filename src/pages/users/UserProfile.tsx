@@ -1,8 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Code2, GitPullRequest, ShieldBan, UserPlus, LogIn, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Code2, GitPullRequest, ShieldBan, UserPlus, LogIn, Loader2, Trash2, RotateCcw } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { apiFetch } from "../../lib/api";
+import UserActionDialog, { type UserActionMode } from "../../components/UserActionDialog";
 
 type ProfileResponse = {
   user: {
@@ -11,6 +13,9 @@ type ProfileResponse = {
     name: string;
     image: string | null;
     isDeleted: boolean;
+    suspendedAt: string | null;
+    suspendedBy: string | null;
+    role: string;
     emailVerified: boolean;
     createdAt: string;
     settings: any;
@@ -25,7 +30,9 @@ type ProfileResponse = {
 export default function UserProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+  const queryClient = useQueryClient();
+  const [action, setAction] = useState<UserActionMode | null>(null);
+
   const { data, isLoading, isError } = useQuery<ProfileResponse>({
     queryKey: ["admin-user", id],
     queryFn: () => apiFetch(`/users/${id}`),
@@ -130,9 +137,31 @@ export default function UserProfile() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="text-amber-500 border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-500 gap-1.5">
-                <ShieldBan className="h-3.5 w-3.5" />
+              {user.suspendedAt && (
+                <span
+                  className="rounded px-2 py-0.5 text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                  title={user.suspendedBy ? `Suspended by ${user.suspendedBy}` : undefined}
+                >
+                  SUSPENDED
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-amber-500 border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-500 gap-1.5"
+                onClick={() => setAction(user.isDeleted ? "restore" : "suspend")}
+              >
+                {user.isDeleted ? <RotateCcw className="h-3.5 w-3.5" /> : <ShieldBan className="h-3.5 w-3.5" />}
                 {user.isDeleted ? "Restore" : "Suspend"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive gap-1.5"
+                onClick={() => setAction("purge")}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
               </Button>
             </div>
           </div>
@@ -248,6 +277,23 @@ export default function UserProfile() {
           </div>
         </div>
       </div>
+
+      {action && (
+        <UserActionDialog
+          mode={action}
+          user={{ id: user.id, email: user.email, name: user.name }}
+          onClose={() => setAction(null)}
+          onDone={() => {
+            setAction(null);
+            if (action === "purge") {
+              navigate("/users/all", { replace: true });
+              return;
+            }
+            queryClient.invalidateQueries({ queryKey: ["admin-user", id] });
+            queryClient.invalidateQueries({ queryKey: ["users"] });
+          }}
+        />
+      )}
     </div>
   );
 }

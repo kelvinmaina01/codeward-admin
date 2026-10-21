@@ -15,11 +15,14 @@ import {
   Mail,
   Trash2,
   Clock,
+  ShieldBan,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { apiFetch } from "../../lib/api";
 import MessageDrawer from "../../components/MessageDrawer";
 import AdminModal from "../../components/AdminModal";
+import UserActionDialog from "../../components/UserActionDialog";
 
 type FilterState = {
   plan: string;
@@ -32,6 +35,8 @@ type UserResponse = {
   name: string;
   image: string | null;
   isDeleted: boolean;
+  suspendedAt?: string | null;
+  suspendedBy?: string | null;
   emailVerified: boolean;
   role?: string;
   createdAt: string;
@@ -76,6 +81,11 @@ export default function UsersList() {
 
   // Messaging state
   const [messagingUser, setMessagingUser] = useState<{ id: string; name: string; email: string } | null>(null);
+
+  // Account action state (suspend / restore / permanent delete)
+  const [actionTarget, setActionTarget] = useState<
+    { user: { id: string; email: string; name: string }; mode: "suspend" | "restore" | "purge" } | null
+  >(null);
 
   // Debounced search for API
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -330,6 +340,34 @@ export default function UsersList() {
                       <Mail className="h-3.5 w-3.5" />
                       Message
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-amber-500"
+                      title={user.isDeleted ? `Restore ${user.name}` : `Suspend ${user.name}`}
+                      onClick={() =>
+                        setActionTarget({
+                          user: { id: user.id, email: user.email, name: user.name },
+                          mode: user.isDeleted ? "restore" : "suspend",
+                        })
+                      }
+                    >
+                      {user.isDeleted ? <RotateCcw className="h-3.5 w-3.5" /> : <ShieldBan className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      title={`Permanently delete ${user.name}`}
+                      onClick={() =>
+                        setActionTarget({
+                          user: { id: user.id, email: user.email, name: user.name },
+                          mode: "purge",
+                        })
+                      }
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" title="View profile">
                       <ExternalLink className="h-3.5 w-3.5" />
                     </Button>
@@ -386,6 +424,19 @@ export default function UsersList() {
 
       {/* ── Message Drawer ── */}
       <MessageDrawer user={messagingUser} onClose={() => setMessagingUser(null)} />
+
+      {/* ── Account Action Dialog ── */}
+      {actionTarget && (
+        <UserActionDialog
+          mode={actionTarget.mode}
+          user={actionTarget.user}
+          onClose={() => setActionTarget(null)}
+          onDone={() => {
+            setActionTarget(null);
+            queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+          }}
+        />
+      )}
     </div>
   );
 }
