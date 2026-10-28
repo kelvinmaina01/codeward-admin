@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, type KeyboardEvent } from "react";
+import { useState, useRef, useCallback, useMemo, type KeyboardEvent, type ClipboardEvent } from "react";
 import {
   ArrowLeft,
   ChevronDown,
@@ -21,8 +21,15 @@ import {
   X,
   Plus,
   User,
+  Users,
+  UserPlus,
+  ExternalLink,
+  Shield,
   Sparkles,
   LayoutTemplate,
+  Search,
+  Check,
+  Building,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
@@ -33,6 +40,7 @@ import {
   wrapInRetroEmailTemplate,
 } from "../../lib/email-markdown";
 import { getAvatarUrls } from "../../lib/avatar";
+import { useUserDirectory, extractEmailsFromInput, type AppUser } from "../../lib/users";
 import { cn } from "../../lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -47,7 +55,7 @@ function AvatarImage({
 }: {
   email: string;
   label: string;
-  color: string;
+  color?: string;
   size?: string;
 }) {
   const [imgError, setImgError] = useState(false);
@@ -59,10 +67,10 @@ function AvatarImage({
         className={cn(
           "flex shrink-0 items-center justify-center rounded-full font-bold uppercase",
           size,
-          color,
+          color || "bg-primary/10 text-primary",
         )}
       >
-        {label[0] || "?"}
+        {label ? label[0].toUpperCase() : "?"}
       </span>
     );
   }
@@ -80,7 +88,347 @@ function AvatarImage({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Recipient chip input                                               */
+/*  User Picker Modal (Multi-select from database)                    */
+/* ------------------------------------------------------------------ */
+
+function UserPickerModal({
+  isOpen,
+  onClose,
+  onSelectUsers,
+  alreadySelected,
+  targetLabel,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectUsers: (emails: string[]) => void;
+  alreadySelected: string[];
+  targetLabel: string;
+}) {
+  const [search, setSearch] = useState("");
+  const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
+  const { data, isLoading } = useUserDirectory(search, 100);
+  const users = data?.users || [];
+
+  const toggleUser = (email: string) => {
+    setSelectedEmails((prev) =>
+      prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email],
+    );
+  };
+
+  const selectAll = () => {
+    const unselected = users
+      .map((u) => u.email.toLowerCase())
+      .filter((e) => !alreadySelected.includes(e));
+    setSelectedEmails(unselected);
+  };
+
+  const handleConfirm = () => {
+    onSelectUsers(selectedEmails);
+    setSelectedEmails([]);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+      <div className="flex max-h-[85vh] w-full max-w-xl flex-col rounded-2xl border bg-card shadow-2xl overflow-hidden animate-in zoom-in-95">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between border-b px-5 py-3.5">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            <div>
+              <h3 className="text-sm font-bold">Select Codeward Users</h3>
+              <p className="text-xs text-muted-foreground">Add to {targetLabel} field</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="border-b px-4 py-3 bg-muted/20">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search users by name, email, or plan..."
+              className="h-9 w-full rounded-xl border bg-background pl-9 pr-3 text-xs outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+              autoFocus
+            />
+          </div>
+          <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>{users.length} users found</span>
+            <button
+              type="button"
+              onClick={selectAll}
+              className="font-medium text-primary hover:underline cursor-pointer"
+            >
+              Select all visible ({users.length})
+            </button>
+          </div>
+        </div>
+
+        {/* Users List */}
+        <div className="flex-1 overflow-auto p-2 space-y-1">
+          {isLoading && (
+            <div className="flex h-40 items-center justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            </div>
+          )}
+
+          {!isLoading && users.length === 0 && (
+            <div className="p-8 text-center text-xs text-muted-foreground">
+              No users matching "{search}"
+            </div>
+          )}
+
+          {users.map((u) => {
+            const isAlready = alreadySelected.includes(u.email.toLowerCase());
+            const isChecked = selectedEmails.includes(u.email.toLowerCase()) || isAlready;
+
+            return (
+              <div
+                key={u.id}
+                onClick={() => !isAlready && toggleUser(u.email.toLowerCase())}
+                className={cn(
+                  "flex items-center justify-between gap-3 rounded-xl p-2.5 transition-colors",
+                  isAlready
+                    ? "opacity-50 cursor-not-allowed bg-muted/30"
+                    : "hover:bg-muted/60 cursor-pointer",
+                  selectedEmails.includes(u.email.toLowerCase()) && "bg-primary/10 border border-primary/20",
+                )}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={cn(
+                      "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
+                      isChecked ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30",
+                    )}
+                  >
+                    {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
+                  </div>
+
+                  <AvatarImage
+                    email={u.email}
+                    label={u.name || u.email}
+                    size="h-8 w-8"
+                  />
+
+                  <div className="truncate">
+                    <p className="text-xs font-semibold truncate leading-tight">
+                      {u.name || u.email.split("@")[0]}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {u.plan && (
+                    <span className="rounded-md bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-secondary-foreground">
+                      {u.plan}
+                    </span>
+                  )}
+                  {isAlready && (
+                    <span className="text-[10px] text-muted-foreground italic">Already added</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="flex items-center justify-between border-t bg-muted/20 px-5 py-3">
+          <span className="text-xs text-muted-foreground">
+            {selectedEmails.length} user(s) selected
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 text-xs cursor-pointer">
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={selectedEmails.length === 0}
+              onClick={handleConfirm}
+              className="h-8 text-xs font-semibold cursor-pointer"
+            >
+              Add {selectedEmails.length > 0 ? `(${selectedEmails.length})` : ""} Recipients
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Recipient Inspector Dialog                                        */
+/* ------------------------------------------------------------------ */
+
+function RecipientInspectorModal({
+  recipient,
+  matchedUser,
+  onClose,
+  onRemove,
+  onMoveField,
+  currentField,
+}: {
+  recipient: string | null;
+  matchedUser?: AppUser | null;
+  onClose: () => void;
+  onRemove: () => void;
+  onMoveField: (newField: "to" | "cc" | "bcc") => void;
+  currentField: "to" | "cc" | "bcc";
+}) {
+  const navigate = useNavigate();
+  if (!recipient) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+      <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-2xl animate-in zoom-in-95 space-y-5">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3.5">
+            <AvatarImage
+              email={recipient}
+              label={matchedUser?.name || recipient}
+              size="h-12 w-12"
+            />
+            <div>
+              <h3 className="text-base font-bold text-foreground">
+                {matchedUser?.name || recipient.split("@")[0]}
+              </h3>
+              <p className="text-xs text-muted-foreground font-mono">{recipient}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* User Status Card */}
+        <div className="rounded-xl border bg-muted/30 p-4 space-y-2.5 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground font-medium">User Status</span>
+            {matchedUser ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                <Shield className="h-3 w-3" /> Registered User
+              </span>
+            ) : (
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                External Contact
+              </span>
+            )}
+          </div>
+
+          {matchedUser && (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground font-medium">Plan</span>
+                <span className="font-bold uppercase text-foreground">{matchedUser.plan || "Free"}</span>
+              </div>
+              {matchedUser.orgName && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground font-medium">Organization</span>
+                  <span className="font-medium text-foreground flex items-center gap-1">
+                    <Building className="h-3 w-3 text-muted-foreground" /> {matchedUser.orgName}
+                  </span>
+                </div>
+              )}
+              {matchedUser.role && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground font-medium">Role</span>
+                  <span className="font-medium text-foreground capitalize">{matchedUser.role}</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="space-y-2 pt-1">
+          {matchedUser && (
+            <Button
+              className="w-full font-semibold cursor-pointer"
+              onClick={() => {
+                onClose();
+                navigate(`/users/profile/${matchedUser.id}`);
+              }}
+            >
+              <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> View Full User Profile
+            </Button>
+          )}
+
+          <div className="flex items-center gap-2">
+            {currentField !== "to" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 text-xs cursor-pointer"
+                onClick={() => {
+                  onMoveField("to");
+                  onClose();
+                }}
+              >
+                Move to To
+              </Button>
+            )}
+            {currentField !== "cc" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 text-xs cursor-pointer"
+                onClick={() => {
+                  onMoveField("cc");
+                  onClose();
+                }}
+              >
+                Move to Cc
+              </Button>
+            )}
+            {currentField !== "bcc" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 text-xs cursor-pointer"
+                onClick={() => {
+                  onMoveField("bcc");
+                  onClose();
+                }}
+              >
+                Move to Bcc
+              </Button>
+            )}
+            <Button
+              variant="destructive"
+              size="sm"
+              className="text-xs cursor-pointer"
+              onClick={() => {
+                onRemove();
+                onClose();
+              }}
+            >
+              Remove
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Recipient Input with Autocomplete, Multi-paste & Inspection       */
 /* ------------------------------------------------------------------ */
 
 function RecipientInput({
@@ -89,91 +437,243 @@ function RecipientInput({
   value,
   onChange,
   placeholder,
+  usersMap,
+  allUsers,
+  fieldKey,
+  onMoveField,
 }: {
   id: string;
   label: string;
   value: string[];
   onChange: (v: string[]) => void;
   placeholder?: string;
+  usersMap: Map<string, AppUser>;
+  allUsers: AppUser[];
+  fieldKey: "to" | "cc" | "bcc";
+  onMoveField: (email: string, fromField: "to" | "cc" | "bcc", toField: "to" | "cc" | "bcc") => void;
 }) {
   const [input, setInput] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [inspectedRecipient, setInspectedRecipient] = useState<string | null>(null);
 
-  const add = useCallback(
-    (raw: string) => {
-      const items = raw
-        .split(/[,;\s]+/)
-        .map((s) => s.trim())
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Filter users matching typed query
+  const autocompleteSuggestions = useMemo(() => {
+    const q = input.trim().toLowerCase();
+    if (!q) return [];
+    return allUsers
+      .filter((u) => {
+        const email = u.email.toLowerCase();
+        const name = (u.name || "").toLowerCase();
+        return (email.includes(q) || name.includes(q)) && !value.includes(email);
+      })
+      .slice(0, 8);
+  }, [input, allUsers, value]);
+
+  // Add one or multiple emails
+  const addEmails = useCallback(
+    (newEmails: string[]) => {
+      const clean = newEmails
+        .map((s) => s.trim().toLowerCase())
         .filter((s) => s.length > 0 && !value.includes(s));
-      if (items.length) onChange([...value, ...items]);
+      if (clean.length > 0) {
+        onChange([...value, ...clean]);
+      }
     },
     [value, onChange],
   );
 
-  const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
+  // Paste handler: handles comma, list, links with email params, mailto links
+  const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    const pastedText = e.clipboardData.getData("text");
+    if (!pastedText) return;
+
+    const extracted = extractEmailsFromInput(pastedText);
+    if (extracted.length > 0) {
+      e.preventDefault();
+      addEmails(extracted);
+      setInput("");
+      setShowDropdown(false);
+    }
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if ((e.key === "Enter" || e.key === "Tab" || e.key === ",") && input.trim()) {
       e.preventDefault();
-      add(input);
+      const extracted = extractEmailsFromInput(input);
+      if (extracted.length > 0) {
+        addEmails(extracted);
+      } else {
+        addEmails([input.trim()]);
+      }
       setInput("");
+      setShowDropdown(false);
     }
     if (e.key === "Backspace" && !input && value.length > 0) {
       onChange(value.slice(0, -1));
     }
   };
 
-  const onBlur = () => {
-    if (input.trim()) {
-      add(input);
-      setInput("");
-    }
+  const handleSelectUser = (u: AppUser) => {
+    addEmails([u.email]);
+    setInput("");
+    setShowDropdown(false);
+    inputRef.current?.focus();
   };
 
-  const remove = (i: number) => onChange(value.filter((_, idx) => idx !== i));
+  const removeAt = (index: number) => {
+    onChange(value.filter((_, i) => i !== index));
+  };
 
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </label>
+    <div className="space-y-1.5" ref={containerRef}>
+      <div className="flex items-center justify-between">
+        <label htmlFor={id} className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </label>
+        <button
+          type="button"
+          onClick={() => setShowPicker(true)}
+          className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer transition-colors"
+        >
+          <UserPlus className="h-3 w-3" />
+          Select from Users
+        </button>
+      </div>
+
       <div
-        className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-xl border bg-background px-3 py-1.5 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all cursor-text"
+        className="relative flex min-h-[44px] flex-wrap items-center gap-1.5 rounded-xl border bg-background px-3 py-1.5 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all cursor-text shadow-2xs"
         onClick={() => inputRef.current?.focus()}
       >
-        {value.map((email, i) => (
-          <span
-            key={email + i}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary shadow-xs"
-          >
-            {email}
-            <button
-              type="button"
+        {value.map((email, i) => {
+          const user = usersMap.get(email.toLowerCase());
+          return (
+            <div
+              key={email + i}
               onClick={(e) => {
                 e.stopPropagation();
-                remove(i);
+                setInspectedRecipient(email);
               }}
-              className="rounded-full p-0.5 hover:bg-primary/20 cursor-pointer transition-colors"
+              title="Click to inspect recipient details and profile"
+              className={cn(
+                "group inline-flex items-center gap-1.5 rounded-lg border py-1 pl-1.5 pr-2 text-xs font-medium transition-all cursor-pointer shadow-2xs",
+                user
+                  ? "bg-primary/10 border-primary/20 text-primary hover:bg-primary/20"
+                  : "bg-muted/60 border-border/60 text-foreground hover:bg-muted",
+              )}
             >
-              <X className="h-3 w-3" />
-            </button>
-          </span>
-        ))}
+              <AvatarImage
+                email={email}
+                label={user?.name || email}
+                size="h-5 w-5"
+              />
+              <span className="font-semibold text-[11px]">
+                {user?.name ? user.name : email}
+              </span>
+              {user?.plan && (
+                <span className="rounded bg-primary/20 px-1 py-0.2 text-[9px] font-bold uppercase tracking-wider text-primary">
+                  {user.plan}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeAt(i);
+                }}
+                className="ml-0.5 rounded-full p-0.5 text-muted-foreground hover:bg-black/10 hover:text-foreground dark:hover:bg-white/10 cursor-pointer transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          );
+        })}
+
         <input
           ref={inputRef}
           id={id}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={onKey}
-          onBlur={onBlur}
-          placeholder={value.length === 0 ? placeholder : "Add another..."}
-          className="min-w-[140px] flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground/50"
+          onChange={(e) => {
+            setInput(e.target.value);
+            setShowDropdown(true);
+          }}
+          onPaste={handlePaste}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setShowDropdown(true)}
+          placeholder={value.length === 0 ? placeholder : "Type email, search user, or paste list..."}
+          className="min-w-[150px] flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground/50"
         />
+
+        {/* Autocomplete Dropdown */}
+        {showDropdown && autocompleteSuggestions.length > 0 && (
+          <div className="absolute left-0 right-0 top-full z-40 mt-1 max-h-56 overflow-auto rounded-xl border bg-card p-1 shadow-xl animate-in fade-in slide-in-from-top-1">
+            <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b mb-1">
+              Matching Codeward Users
+            </p>
+            {autocompleteSuggestions.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => handleSelectUser(u)}
+                className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs hover:bg-primary/10 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <AvatarImage
+                    email={u.email}
+                    label={u.name || u.email}
+                    size="h-6 w-6"
+                  />
+                  <div className="truncate">
+                    <p className="font-semibold text-foreground truncate">{u.name || u.email.split("@")[0]}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
+                  </div>
+                </div>
+                {u.plan && (
+                  <span className="rounded bg-secondary px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-secondary-foreground shrink-0">
+                    {u.plan}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* User Directory Modal */}
+      <UserPickerModal
+        isOpen={showPicker}
+        onClose={() => setShowPicker(false)}
+        onSelectUsers={(emails) => addEmails(emails)}
+        alreadySelected={value}
+        targetLabel={label}
+      />
+
+      {/* Recipient Inspector Modal */}
+      <RecipientInspectorModal
+        recipient={inspectedRecipient}
+        matchedUser={inspectedRecipient ? usersMap.get(inspectedRecipient.toLowerCase()) : null}
+        onClose={() => setInspectedRecipient(null)}
+        onRemove={() => {
+          if (inspectedRecipient) {
+            onChange(value.filter((e) => e.toLowerCase() !== inspectedRecipient.toLowerCase()));
+          }
+        }}
+        onMoveField={(newField) => {
+          if (inspectedRecipient) {
+            onMoveField(inspectedRecipient, fieldKey, newField);
+          }
+        }}
+        currentField={fieldKey}
+      />
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Sender selector                                                    */
+/*  Sender Selector                                                    */
 /* ------------------------------------------------------------------ */
 
 function SenderSelector({
@@ -206,14 +706,14 @@ function SenderSelector({
   };
 
   return (
-    <div className="relative space-y-1">
-      <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="relative space-y-1.5">
+      <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
         From
       </label>
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between rounded-xl border bg-background px-3 py-2.5 text-sm transition-all hover:border-primary/40 cursor-pointer"
+        className="flex w-full items-center justify-between rounded-xl border bg-background px-3 py-2.5 text-sm transition-all hover:border-primary/40 cursor-pointer shadow-2xs"
       >
         <div className="flex items-center gap-3">
           <AvatarImage
@@ -300,7 +800,7 @@ function SenderSelector({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Main compose component                                            */
+/*  Main Compose Component                                            */
 /* ------------------------------------------------------------------ */
 
 type ComposeMode = "rich" | "plain" | "html";
@@ -309,6 +809,21 @@ type ViewTab = "compose" | "preview";
 export default function ComposeEmail() {
   const navigate = useNavigate();
   const sendEmail = useSendEmail();
+
+  // Fetch all users for recipient autocomplete, directory & inspection
+  const { data: usersData } = useUserDirectory("", 200);
+  const allUsers = usersData?.users || [];
+
+  // Index users by email for fast lookup
+  const usersMap = useMemo(() => {
+    const map = new Map<string, AppUser>();
+    for (const u of allUsers) {
+      if (u.email) {
+        map.set(u.email.toLowerCase(), u);
+      }
+    }
+    return map;
+  }, [allUsers]);
 
   const [sender, setSender] = useState<SenderPreset>(SENDER_PRESETS[0]);
   const [to, setTo] = useState<string[]>([]);
@@ -324,12 +839,30 @@ export default function ComposeEmail() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // Link dialog modal / popover
+  // Link dialog
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkText, setLinkText] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Move a recipient between To, Cc, and Bcc
+  const handleMoveField = (email: string, fromField: "to" | "cc" | "bcc", toField: "to" | "cc" | "bcc") => {
+    const cleanEmail = email.toLowerCase();
+    if (fromField === "to") setTo((prev) => prev.filter((e) => e.toLowerCase() !== cleanEmail));
+    if (fromField === "cc") setCc((prev) => prev.filter((e) => e.toLowerCase() !== cleanEmail));
+    if (fromField === "bcc") setBcc((prev) => prev.filter((e) => e.toLowerCase() !== cleanEmail));
+
+    if (toField === "to") setTo((prev) => [...prev, cleanEmail]);
+    if (toField === "cc") {
+      setShowCcBcc(true);
+      setCc((prev) => [...prev, cleanEmail]);
+    }
+    if (toField === "bcc") {
+      setShowCcBcc(true);
+      setBcc((prev) => [...prev, cleanEmail]);
+    }
+  };
 
   // Insert formatting helper at cursor
   const insertFormatting = (before: string, after: string = "", placeholder = "") => {
@@ -571,13 +1104,17 @@ export default function ComposeEmail() {
           {/* Sender */}
           <SenderSelector value={sender} onChange={setSender} />
 
-          {/* Recipients */}
+          {/* Recipients: TO */}
           <RecipientInput
             id="compose-to"
             label="To"
             value={to}
             onChange={setTo}
-            placeholder="recipient@example.com (press Enter or comma)"
+            placeholder="recipient@example.com (search user, comma list, or paste link/text)"
+            usersMap={usersMap}
+            allUsers={allUsers}
+            fieldKey="to"
+            onMoveField={handleMoveField}
           />
 
           {/* Cc / Bcc expander */}
@@ -600,6 +1137,10 @@ export default function ComposeEmail() {
                 value={cc}
                 onChange={setCc}
                 placeholder="cc@example.com"
+                usersMap={usersMap}
+                allUsers={allUsers}
+                fieldKey="cc"
+                onMoveField={handleMoveField}
               />
               <RecipientInput
                 id="compose-bcc"
@@ -607,15 +1148,19 @@ export default function ComposeEmail() {
                 value={bcc}
                 onChange={setBcc}
                 placeholder="bcc@example.com"
+                usersMap={usersMap}
+                allUsers={allUsers}
+                fieldKey="bcc"
+                onMoveField={handleMoveField}
               />
             </div>
           )}
 
           {/* Subject */}
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <label
               htmlFor="compose-subject"
-              className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+              className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground"
             >
               Subject
             </label>
@@ -624,7 +1169,7 @@ export default function ComposeEmail() {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Welcome to Codeward Cloud / Update on your project"
-              className="h-11 w-full rounded-xl border bg-background px-3.5 text-sm font-medium outline-none placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              className="h-11 w-full rounded-xl border bg-background px-3.5 text-sm font-medium outline-none placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all shadow-2xs"
             />
           </div>
 
