@@ -26,7 +26,6 @@ import {
   ExternalLink,
   Shield,
   Sparkles,
-  LayoutTemplate,
   Search,
   Check,
   Building,
@@ -37,7 +36,6 @@ import { useSendEmail, SENDER_PRESETS, type SenderPreset } from "../../lib/messa
 import {
   markdownToEmailHtml,
   markdownToPlainText,
-  wrapInRetroEmailTemplate,
 } from "../../lib/email-markdown";
 import { getAvatarUrls } from "../../lib/avatar";
 import { useUserDirectory, extractEmailsFromInput, type AppUser } from "../../lib/users";
@@ -832,7 +830,6 @@ export default function ComposeEmail() {
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
   const [mode, setMode] = useState<ComposeMode>("rich");
-  const [wrapRetroHtml, setWrapRetroHtml] = useState(true);
   const [viewTab, setViewTab] = useState<ViewTab>("compose");
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [showCcBcc, setShowCcBcc] = useState(false);
@@ -923,11 +920,8 @@ export default function ComposeEmail() {
   // Compile final email bodies
   const getCompiledBodies = () => {
     if (mode === "html") {
-      const raw = content.trim();
-      const isFullDoc = /<!DOCTYPE|<html/i.test(raw);
-      const html = !isFullDoc && wrapRetroHtml ? wrapInRetroEmailTemplate(raw) : raw;
       return {
-        html,
+        html: content.trim(),
         text: undefined,
       };
     }
@@ -937,7 +931,6 @@ export default function ComposeEmail() {
         html: undefined,
       };
     }
-    // Rich / Markdown mode: generates BOTH email-ready HTML and clean plain-text fallback!
     return {
       html: markdownToEmailHtml(content),
       text: markdownToPlainText(content),
@@ -996,11 +989,7 @@ export default function ComposeEmail() {
   };
 
   const renderedPreviewHtml =
-    mode === "html"
-      ? /<!DOCTYPE|<html/i.test(content) || !wrapRetroHtml
-        ? content
-        : wrapInRetroEmailTemplate(content)
-      : markdownToEmailHtml(content);
+    mode === "html" ? content : markdownToEmailHtml(content);
 
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden bg-background">
@@ -1020,7 +1009,7 @@ export default function ComposeEmail() {
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold tracking-tight">Compose Email</h2>
               <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                Resend API
+                Codeward Mail
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -1059,40 +1048,6 @@ export default function ComposeEmail() {
       {/* ── Main Canvas ─────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto px-6 py-6">
         <div className="mx-auto flex max-w-3xl flex-col gap-5">
-          {/* Success Banner */}
-          {success && (
-            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 shadow-sm animate-in fade-in slide-in-from-top-2">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
-                    Email sent successfully!
-                  </h3>
-                  <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">
-                    Your message has been dispatched via Resend. When recipients reply,
-                    their responses are received and viewable directly in your Inbox.
-                  </p>
-                  <div className="mt-4 flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => navigate("/messages")}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
-                    >
-                      <Inbox className="mr-1.5 h-3.5 w-3.5" /> View in Inbox
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={resetForm}
-                      className="cursor-pointer"
-                    >
-                      Compose Another
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Error Message */}
           {error && (
@@ -1344,20 +1299,6 @@ export default function ComposeEmail() {
                   </>
                 )}
               </div>
-
-              {/* HTML Mode Retro Frame Toggle */}
-              {mode === "html" && (
-                <label className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={wrapRetroHtml}
-                    onChange={(e) => setWrapRetroHtml(e.target.checked)}
-                    className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
-                  />
-                  <LayoutTemplate className="h-3.5 w-3.5 text-primary" />
-                  Apply Retro Outlook/Gmail Frame (4px Border & 18px Radius)
-                </label>
-              )}
             </div>
           )}
 
@@ -1445,11 +1386,9 @@ export default function ComposeEmail() {
               <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
                 <span>
                   {mode === "rich"
-                    ? "✨ Formatted with huge 4px retro outer border, 18px radius, and table-based Outlook & Gmail responsive layout."
+                    ? "✨ Clean 100% full-width HTML with hyperlinks + plain text fallback."
                     : mode === "html"
-                      ? wrapRetroHtml
-                        ? "✨ Raw HTML wrapped in retro 4px outer border & 18px radius Outlook/Gmail container."
-                        : "Sent as standalone custom HTML."
+                      ? "Sent as raw custom HTML (your HTML code controls all borders and styles)."
                       : "Sent as pure plain text."}
                 </span>
                 <span>{content.length} characters</span>
@@ -1585,6 +1524,56 @@ export default function ComposeEmail() {
           </div>
         </div>
       </div>
+
+      {/* ── Toast Notification: Email Sent ──────────────────────── */}
+      {success && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-md w-full animate-in fade-in slide-in-from-bottom-5 duration-300 pointer-events-auto">
+          <div className="flex items-start gap-3.5 rounded-2xl border border-emerald-500/40 bg-card p-4.5 shadow-2xl backdrop-blur-md ring-1 ring-black/5 dark:ring-white/10">
+            <div className="rounded-xl bg-emerald-500/15 p-2 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-sm font-bold text-foreground leading-tight">
+                  Email sent successfully!
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setSuccess(false)}
+                  className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer transition-colors"
+                  title="Close notification"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                Your message has been dispatched. When recipients reply,
+                their responses are received and viewable directly in your Inbox.
+              </p>
+              <div className="mt-3.5 flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setSuccess(false);
+                    navigate("/messages");
+                  }}
+                  className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3.5 cursor-pointer shadow-xs"
+                >
+                  <Inbox className="mr-1.5 h-3.5 w-3.5" /> View in Inbox
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetForm}
+                  className="h-8 text-xs font-semibold px-3 cursor-pointer"
+                >
+                  Compose Another
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

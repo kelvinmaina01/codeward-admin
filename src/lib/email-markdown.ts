@@ -1,13 +1,7 @@
 /**
- * Email Markdown to responsive, inline-styled HTML converter with
- * bulletproof Outlook & Gmail compatibility.
- *
- * Implements:
- * - Table-based MSO layout for Outlook (desktop & web)
- * - Mobile responsive viewport & media queries for Gmail iOS/Android
- * - Retro styling: Huge outer border (4px solid #0f172a), retro internal radius (18px),
- *   subtle neo-retro offset shadow, and crisp high-contrast typography.
- * - Robust hyperlink rendering with styled anchor tags for all clients.
+ * Clean, responsive 100% width HTML email generator.
+ * Converts markdown & rich text into clean HTML without unwanted borders,
+ * headers, or third-party footers.
  */
 
 function escapeHtml(str: string): string {
@@ -20,89 +14,46 @@ function escapeHtml(str: string): string {
 }
 
 /**
- * Wraps any HTML content in a bulletproof responsive email container
- * featuring the retro huge border, retro internal radius, and Outlook/Gmail table architecture.
+ * Wraps content in a 100% width, clean responsive email body with zero unwanted borders or branding.
  */
-export function wrapInRetroEmailTemplate(contentHtml: string): string {
-  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+export function wrapInCleanEmailTemplate(contentHtml: string): string {
+  return `<!DOCTYPE html>
+<html>
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Codeward Message</title>
-  <!--[if mso]>
-  <noscript>
-    <xml>
-      <o:OfficeDocumentSettings>
-        <o:PixelsPerInch>96</o:PixelsPerInch>
-      </o:OfficeDocumentSettings>
-    </xml>
-  </noscript>
-  <![endif]-->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style type="text/css">
-    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
-    body { margin: 0; padding: 0; width: 100% !important; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-    a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; font-size: inherit !important; font-family: inherit !important; font-weight: inherit !important; line-height: inherit !important; }
-    @media only screen and (max-width: 620px) {
-      .email-container { width: 100% !important; max-width: 100% !important; }
-      .email-content { padding: 22px 18px !important; }
-      .retro-card { border-width: 3px !important; border-radius: 14px !important; }
+    body {
+      margin: 0;
+      padding: 16px 20px;
+      width: 100% !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+      color: #1e293b;
+      background-color: #ffffff;
+      -webkit-font-smoothing: antialiased;
+    }
+    a {
+      color: #2563eb;
+      text-decoration: underline;
+      font-weight: 500;
+    }
+    p {
+      margin: 0 0 16px 0;
     }
   </style>
 </head>
-<body style="margin: 0; padding: 30px 12px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
-  <!--[if mso]>
-  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9;">
-    <tr>
-      <td align="center" style="padding: 20px 0;">
-        <table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0">
-          <tr>
-            <td>
-  <![endif]-->
-
-  <table role="presentation" class="email-container" width="100%" border="0" cellspacing="0" cellpadding="0" align="center" style="max-width: 620px; margin: 0 auto;">
-    <tr>
-      <td align="center" style="padding: 0;">
-        <!-- Retro Main Card: Huge 4px border + 18px retro radius + neo offset shadow -->
-        <table role="presentation" class="retro-card" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border: 4px solid #0f172a; border-radius: 18px; box-shadow: 6px 6px 0px #0f172a; overflow: hidden; border-collapse: separate;">
-          <!-- Top Accent Bar -->
-          <tr>
-            <td style="background-color: #0f172a; height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td>
-          </tr>
-          <!-- Body Content Area -->
-          <tr>
-            <td class="email-content" style="padding: 36px 32px; font-size: 15px; line-height: 1.65; color: #1e293b; text-align: left;">
-              ${contentHtml}
-            </td>
-          </tr>
-          <!-- Retro Subtle Footer -->
-          <tr>
-            <td style="background-color: #f8fafc; border-top: 2px solid #e2e8f0; padding: 14px 28px; text-align: center; font-size: 11px; color: #64748b; font-weight: 500;">
-              Sent via <strong style="color: #0f172a;">Codeward Cloud</strong> · Verified Resend Domain
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-
-  <!--[if mso]>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-  <![endif]-->
+<body style="margin: 0; padding: 16px 20px; width: 100% !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.65; color: #1e293b; background-color: #ffffff;">
+  <div style="width: 100%; max-width: 100%; margin: 0 auto; word-break: break-word;">
+    ${contentHtml}
+  </div>
 </body>
 </html>`.trim();
 }
 
 /**
- * Converts Markdown and plain text into the fully styled retro HTML email body
+ * Converts Markdown and plain text into clean, 100% width HTML
  */
 export function markdownToEmailHtml(markdown: string): string {
   if (!markdown || !markdown.trim()) return "";
@@ -141,7 +92,7 @@ export function markdownToEmailHtml(markdown: string): string {
       closeList();
       if (inCodeBlock) {
         output.push(
-          `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 14px 0;"><tr><td style="background: #0f172a; color: #f8fafc; padding: 14px 18px; border-radius: 10px; border: 2px solid #0f172a; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5; overflow-x: auto;"><code>${escapeHtml(codeBlockContent.join("\n"))}</code></td></tr></table>`,
+          `<pre style="background: #0f172a; color: #f8fafc; padding: 14px 18px; border-radius: 8px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5; overflow-x: auto; margin: 14px 0;"><code>${escapeHtml(codeBlockContent.join("\n"))}</code></pre>`,
         );
         codeBlockContent = [];
         inCodeBlock = false;
@@ -168,7 +119,7 @@ export function markdownToEmailHtml(markdown: string): string {
       flushParagraph();
       closeList();
       output.push(
-        `<hr style="border: none; border-top: 2px dashed #cbd5e1; margin: 24px 0;" />`,
+        `<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />`,
       );
       continue;
     }
@@ -179,7 +130,7 @@ export function markdownToEmailHtml(markdown: string): string {
       flushParagraph();
       closeList();
       output.push(
-        `<h1 style="margin: 22px 0 12px 0; font-size: 24px; font-weight: 800; color: #0f172a; line-height: 1.25; letter-spacing: -0.02em;">${formatInline(h1Match[1])}</h1>`,
+        `<h1 style="margin: 22px 0 12px 0; font-size: 24px; font-weight: 700; color: #0f172a; line-height: 1.25;">${formatInline(h1Match[1])}</h1>`,
       );
       continue;
     }
@@ -189,7 +140,7 @@ export function markdownToEmailHtml(markdown: string): string {
       flushParagraph();
       closeList();
       output.push(
-        `<h2 style="margin: 20px 0 10px 0; font-size: 19px; font-weight: 700; color: #0f172a; line-height: 1.3; letter-spacing: -0.01em;">${formatInline(h2Match[1])}</h2>`,
+        `<h2 style="margin: 20px 0 10px 0; font-size: 19px; font-weight: 600; color: #0f172a; line-height: 1.3;">${formatInline(h2Match[1])}</h2>`,
       );
       continue;
     }
@@ -210,7 +161,7 @@ export function markdownToEmailHtml(markdown: string): string {
       flushParagraph();
       closeList();
       output.push(
-        `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 14px 0;"><tr><td style="border-left: 4px solid #0f172a; background-color: #f8fafc; padding: 12px 18px; border-radius: 0 10px 10px 0; font-style: italic; color: #475569; font-size: 15px; line-height: 1.6;">${formatInline(bqMatch[1])}</td></tr></table>`,
+        `<blockquote style="border-left: 3px solid #cbd5e1; padding-left: 14px; margin: 14px 0; color: #475569; font-style: italic;">${formatInline(bqMatch[1])}</blockquote>`,
       );
       continue;
     }
@@ -257,7 +208,7 @@ export function markdownToEmailHtml(markdown: string): string {
   closeList();
 
   const bodyContent = output.join("\n");
-  return wrapInRetroEmailTemplate(bodyContent);
+  return wrapInCleanEmailTemplate(bodyContent);
 }
 
 /**
@@ -269,24 +220,24 @@ function formatInline(text: string): string {
   // CTA button syntax: [button: Text](url) or [button:Text](url)
   res = res.replace(
     /\[button:\s*([^\]]+)\]\(([^)]+)\)/gi,
-    `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin: 14px 0; display: inline-block;"><tr><td align="center" style="border-radius: 12px; background-color: #0f172a; border: 2px solid #0f172a; box-shadow: 3px 3px 0px #2563eb;"><a href="$2" target="_blank" style="font-size: 14px; font-weight: 700; color: #ffffff !important; text-decoration: none; padding: 11px 22px; display: inline-block; letter-spacing: 0.02em;">$1 &rarr;</a></td></tr></table>`,
+    `<a href="$2" target="_blank" style="display: inline-block; font-size: 14px; font-weight: 600; color: #ffffff !important; background-color: #2563eb; text-decoration: none; padding: 10px 20px; border-radius: 6px; margin: 10px 0;">$1</a>`,
   );
 
   // Markdown links: [Text](url)
   res = res.replace(
     /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-    `<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-weight: 600; word-break: break-word;">$1</a>`,
+    `<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-weight: 500; word-break: break-word;">$1</a>`,
   );
 
   // Raw URLs (not already part of an href="")
   res = res.replace(
     /(^|[^"'])(https?:\/\/[^\s<]+)/g,
-    `$1<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-weight: 600; word-break: break-word;">$2</a>`,
+    `$1<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-weight: 500; word-break: break-word;">$2</a>`,
   );
 
   // Bold: **text** or __text__
-  res = res.replace(/\*\*([^*]+)\*\*/g, `<strong style="font-weight: 700; color: #0f172a;">$1</strong>`);
-  res = res.replace(/__([^_]+)__/g, `<strong style="font-weight: 700; color: #0f172a;">$1</strong>`);
+  res = res.replace(/\*\*([^*]+)\*\*/g, `<strong style="font-weight: 600; color: #0f172a;">$1</strong>`);
+  res = res.replace(/__([^_]+)__/g, `<strong style="font-weight: 600; color: #0f172a;">$1</strong>`);
 
   // Italic: *text* or _text_
   res = res.replace(/\*([^*]+)\*/g, `<em>$1</em>`);
@@ -298,7 +249,7 @@ function formatInline(text: string): string {
   // Inline code: `code`
   res = res.replace(
     /`([^`]+)`/g,
-    `<code style="background-color: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.88em; color: #0f172a; border: 1px solid #e2e8f0; font-weight: 500;">$1</code>`,
+    `<code style="background-color: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em; color: #0f172a;">$1</code>`,
   );
 
   return res;
