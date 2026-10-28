@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2, Mail, Search } from "lucide-react";
+import { Loader2, Mail, Plus, Search } from "lucide-react";
 import { cn } from "../../lib/utils";
 import {
   STATUS_META,
@@ -99,7 +99,17 @@ export default function ThreadsList({ activeThreadId }: { activeThreadId?: strin
           <h1 className="text-lg font-bold tracking-tight">Messages</h1>
           <p className="text-xs text-muted-foreground">All emails sent & received via Resend</p>
         </div>
-        <Mail className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => navigate("/messages/compose")}
+            className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/20 cursor-pointer"
+            title="Compose New Email"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Compose
+          </button>
+        </div>
       </div>
 
       <div className="px-3 pb-2">

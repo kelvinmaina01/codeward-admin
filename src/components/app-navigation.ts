@@ -15,6 +15,8 @@ import {
   Wallet01Icon,
   InboxIcon,
   Mail01Icon,
+  MailEdit02Icon,
+  SentIcon,
 } from "hugeicons-react";
 
 export type SecondaryLink = {
@@ -155,12 +157,28 @@ export const primaryNav: PrimaryItem[] = [
     panelSubtitle: "Emails sent & received via Resend",
     groups: [
       {
+        id: "compose",
+        label: "Actions",
+        links: [
+          { label: "Compose Email", href: "/messages/compose", icon: MailEdit02Icon },
+        ],
+      },
+      {
         id: "inbox",
         label: "Inbox",
         links: [
           { label: "All Messages", href: "/messages", end: true, icon: InboxIcon },
           { label: "Transactional", href: "/messages?filter=transactional", icon: Alert01Icon },
           { label: "Personal / Direct", href: "/messages?filter=personal", icon: UserGroupIcon },
+        ],
+      },
+      {
+        id: "delivery",
+        label: "Delivery",
+        collapsible: true,
+        defaultOpen: true,
+        links: [
+          { label: "Failed & Bounced", href: "/messages?status=failed", icon: SentIcon },
         ],
       },
     ],

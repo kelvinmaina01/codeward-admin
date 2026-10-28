@@ -120,6 +120,7 @@ export type ThreadDetailResponse = {
 
 export function useMessageThreads(params: {
   filter?: ThreadFilter;
+  direction?: DirectionFilter;
   /** `failed` returns threads containing a bounced, failed or complained message. */
   status?: "failed" | "delivered";
   q?: string;
@@ -128,6 +129,7 @@ export function useMessageThreads(params: {
 } = {}) {
   const search = new URLSearchParams();
   if (params.filter && params.filter !== "all") search.set("filter", params.filter);
+  if (params.direction && params.direction !== "all") search.set("direction", params.direction);
   if (params.status) search.set("status", params.status);
   if (params.q) search.set("q", params.q);
   if (params.page) search.set("page", String(params.page));
@@ -197,6 +199,71 @@ export function useSyncMessages() {
       ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["messages-thread"] });
+      qc.invalidateQueries({ queryKey: ["messages-threads"] });
+    },
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/*  Sender presets for @codeward.cloud                                 */
+/* ------------------------------------------------------------------ */
+
+export type SenderPreset = {
+  label: string;
+  email: string;
+  color: string;
+};
+
+export const SENDER_PRESETS: SenderPreset[] = [
+  {
+    label: "Kelvin",
+    email: "kelvin@codeward.cloud",
+    color: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  },
+  {
+    label: "Melisa",
+    email: "melisa@codeward.cloud",
+    color: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
+  },
+  {
+    label: "Support",
+    email: "support@codeward.cloud",
+    color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    label: "Hello",
+    email: "hello@codeward.cloud",
+    color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  },
+  {
+    label: "Team",
+    email: "team@codeward.cloud",
+    color: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Compose & send a brand-new email (not a reply)                     */
+/* ------------------------------------------------------------------ */
+
+export function useSendEmail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      from: string;
+      fromName?: string;
+      to: string[];
+      cc?: string[];
+      bcc?: string[];
+      subject: string;
+      text?: string;
+      html?: string;
+    }) =>
+      apiFetch<{ success: boolean; message: EmailMessage }>("/messages/send", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["messages-threads"] });
     },
   });

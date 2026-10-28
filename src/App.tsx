@@ -20,6 +20,7 @@ import PayingOrgs from "./pages/revenue/PayingOrgs";
 import Subscribers from "./pages/revenue/Subscribers";
 import MessagesLayout from "./pages/messages/MessagesLayout";
 import MessagesPage from "./pages/messages/MessagesPage";
+import ComposeEmail from "./pages/messages/ComposeEmail";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ function App() {
                 </Route>
                 <Route path="messages" element={<MessagesLayout />}>
                   <Route index element={<MessagesPage />} />
+                  <Route path="compose" element={<ComposeEmail />} />
                   <Route path=":threadId" element={<MessagesPage />} />
                 </Route>
                 <Route path="*" element={<div className="p-8">Coming Soon</div>} />
