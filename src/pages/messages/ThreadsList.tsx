@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2, Mail, Plus, Search } from "lucide-react";
+import { Loader2, Plus, Search } from "lucide-react";
 import { cn } from "../../lib/utils";
 import {
   STATUS_META,
