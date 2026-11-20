@@ -51,13 +51,10 @@ The portal connects to the backend API (`/api/admin/*`), which implements dual-m
    - Browser requests send cookies automatically via `credentials: 'include'`.
 2. **Machine-to-Machine Secret Key (Fallback)**:
    - Header: `x-admin-key: <VITE_ADMIN_KEY>`
-   - Query param: `?key=<VITE_ADMIN_KEY>`
    - Validated against `BETTER_AUTH_SECRET` on the API server.
 
-### Default Super Admin Credentials (Production):
-- **Email**: `kelvin.reallife8@gmail.com`
-- **Role**: `super_admin`
-- **Password**: `paraKenya8#`
+### Super Admin Access:
+Super admin accounts are managed in the production database (role = 'super_admin'). Credentials are never stored in this repository; ask the owner.
 
 ---
 
@@ -66,7 +63,7 @@ The portal connects to the backend API (`/api/admin/*`), which implements dual-m
 | Variable | Description | Production Value |
 | :--- | :--- | :--- |
 | `VITE_API_URL` | Base admin endpoint URL | `https://api.codeward.cloud/api/admin` |
-| `VITE_ADMIN_KEY` | Admin machine secret key | `codeward-super-secret-change-in-prod-2024` |
+| `VITE_ADMIN_KEY` | Admin machine secret key | Set in Vercel environment variables (never commit the value) |
 
 > [!NOTE]
 > Local `.env` is git-ignored. Template keys are committed in `.env.example`. When configuring Vercel, enter these keys in **Project Settings → Environment Variables**.
